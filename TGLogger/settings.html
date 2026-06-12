@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="settings.css">
+    <title>TGLogger - Einstellungen</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- TG LOGO (versteckter Admin-Trigger) -->
+    <img
+        src="images/TG-Logo.png"
+        alt="TG Logo"
+        class="corner-logo"
+        id="cornerLogo"
+        onclick="logoClick()"
+        draggable="false"
+    >
+
+    <main class="content">
+        <p class="hint" id="hintText">Gedrückt halten um neu zu starten</p>
+
+        <div class="btn-wrapper">
+            <svg class="progress-ring" viewBox="0 0 220 220" aria-hidden="true">
+                <circle class="ring-bg"   cx="110" cy="110" r="100"/>
+                <circle class="ring-fill" cx="110" cy="110" r="100" id="ringFill"/>
+            </svg>
+            <button
+                class="restart-btn"
+                id="restartBtn"
+                aria-label="Pi neu starten — 5 Sekunden halten"
+                onmousedown="startHold()"
+                onmouseup="cancelHold()"
+                onmouseleave="cancelHold()"
+                ontouchstart="startHold(event)"
+                ontouchend="cancelHold()"
+                ontouchcancel="cancelHold()"
+            >
+                <svg class="power-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v10"/>
+                    <path d="M5.64 5.64a9 9 0 1 0 12.73 0"/>
+                </svg>
+            </button>
+        </div>
+
+        <p class="status-text" id="statusText"></p>
+    </main>
+
+    <!-- BOTTOM NAV -->
+    <header id="bottomNav">
+        <nav>
+            <ul>
+                <li><a href="info.html">Information</a></li>
+                <li><a href="logs.html">Eintragen</a></li>
+                <li><a href="home.html">Home</a></li>
+                <li><a href="inventory.html">Inventar</a></li>
+                <li><a href="settings.html">Einstellungen</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- PIN OVERLAY -->
+    <div class="pin-overlay" id="pinOverlay">
+        <div class="pin-box">
+            <button class="pin-close" onclick="closePinOverlay()">✕</button>
+            <p class="pin-title">Admin-PIN eingeben</p>
+
+            <!-- PIN Punkte -->
+            <div class="pin-dots" id="pinDots">
+                <span class="pin-dot" id="dot0"></span>
+                <span class="pin-dot" id="dot1"></span>
+                <span class="pin-dot" id="dot2"></span>
+                <span class="pin-dot" id="dot3"></span>
+            </div>
+
+            <p class="pin-error" id="pinError"></p>
+
+            <!-- Zahlen-Tastatur -->
+            <div class="numpad">
+                <button class="num-key" onclick="pinType('1')">1</button>
+                <button class="num-key" onclick="pinType('2')">2</button>
+                <button class="num-key" onclick="pinType('3')">3</button>
+                <button class="num-key" onclick="pinType('4')">4</button>
+                <button class="num-key" onclick="pinType('5')">5</button>
+                <button class="num-key" onclick="pinType('6')">6</button>
+                <button class="num-key" onclick="pinType('7')">7</button>
+                <button class="num-key" onclick="pinType('8')">8</button>
+                <button class="num-key" onclick="pinType('9')">9</button>
+                <button class="num-key num-empty"></button>
+                <button class="num-key" onclick="pinType('0')">0</button>
+                <button class="num-key num-back" onclick="pinBack()">⌫</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN PANEL OVERLAY -->
+    <div class="admin-overlay" id="adminOverlay">
+        <div class="admin-box">
+            <div class="admin-header">
+                <span class="admin-title">Admin-Modus</span>
+                <button class="pin-close" onclick="closeAdmin()">✕</button>
+            </div>
+            <div class="admin-content">
+                <p class="admin-hint">Weitere Admin-Funktionen folgen.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── RESTART BUTTON ────────────────────────────────────────────
+        const HOLD_DURATION = 5000;
+        const FLASK_URL = "http://127.0.0.1:5000/restart";
+        const ring = document.getElementById('ringFill');
+        const btn  = document.getElementById('restartBtn');
+        const hint = document.getElementById('hintText');
+        const statusEl = document.getElementById('statusText');
+        const circumference = 2 * Math.PI * 100;
+        ring.style.strokeDasharray  = circumference;
+        ring.style.strokeDashoffset = circumference;
+
+        let holdTimer = null, rafId = null, startTime = null, holding = false;
+
+        function startHold(e) {
+            if (e) e.preventDefault();
+            if (holding) return;
+            holding = true; startTime = performance.now();
+            btn.classList.add('holding');
+            hint.textContent = "Weiter halten…";
+            animate();
+            holdTimer = setTimeout(triggerRestart, HOLD_DURATION);
+        }
+        function cancelHold() {
+            if (!holding) return;
+            holding = false;
+            clearTimeout(holdTimer); cancelAnimationFrame(rafId);
+            btn.classList.remove('holding');
+            ring.style.strokeDashoffset = circumference;
+            hint.textContent = "Gedrückt halten um neu zu starten";
+            statusEl.textContent = "";
+        }
+        function animate() {
+            const progress = Math.min((performance.now() - startTime) / HOLD_DURATION, 1);
+            ring.style.strokeDashoffset = circumference * (1 - progress);
+            if (progress < 1) rafId = requestAnimationFrame(animate);
+        }
+        function triggerRestart() {
+            holding = false;
+            btn.classList.remove('holding'); btn.classList.add('done');
+            ring.style.strokeDashoffset = 0;
+            hint.textContent = "";
+            statusEl.textContent = "Pi wird neu gestartet…";
+            fetch(FLASK_URL, { method: 'POST' }).catch(() => {});
+        }
+
+        // ── LOGO KLICK COUNTER ────────────────────────────────────────
+        const REQUIRED_CLICKS = 5;
+        const CORRECT_PIN = "3957";
+        let clickCount = 0;
+        let clickTimer = null;
+
+        function logoClick() {
+            clickCount++;
+            clearTimeout(clickTimer);
+
+            if (clickCount >= REQUIRED_CLICKS) {
+                clickCount = 0;
+                openPinOverlay();
+            } else {
+                // Reset nach 2 Sekunden ohne weiteren Klick
+                clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
+            }
+        }
+
+        // ── PIN OVERLAY ───────────────────────────────────────────────
+        let pinValue = "";
+
+        function openPinOverlay() {
+            pinValue = "";
+            updatePinDots();
+            document.getElementById('pinError').textContent = "";
+            document.getElementById('pinOverlay').classList.add('open');
+            document.getElementById('bottomNav').classList.add('hidden');
+        }
+
+        function closePinOverlay() {
+            document.getElementById('pinOverlay').classList.remove('open');
+            document.getElementById('bottomNav').classList.remove('hidden');
+            pinValue = "";
+            updatePinDots();
+        }
+
+        function pinType(digit) {
+            if (pinValue.length >= 4) return;
+            pinValue += digit;
+            updatePinDots();
+            if (pinValue.length === 4) {
+                setTimeout(checkPin, 150);
+            }
+        }
+
+        function pinBack() {
+            pinValue = pinValue.slice(0, -1);
+            updatePinDots();
+            document.getElementById('pinError').textContent = "";
+        }
+
+        function updatePinDots() {
+            for (let i = 0; i < 4; i++) {
+                const dot = document.getElementById('dot' + i);
+                dot.classList.toggle('filled', i < pinValue.length);
+            }
+        }
+
+        function checkPin() {
+            if (pinValue === CORRECT_PIN) {
+                closePinOverlay();
+                openAdmin();
+            } else {
+                document.getElementById('pinError').textContent = "Falscher PIN";
+                // Kurz schütteln dann reset
+                setTimeout(() => {
+                    pinValue = "";
+                    updatePinDots();
+                    document.getElementById('pinError').textContent = "";
+                }, 1000);
+            }
+        }
+
+        // ── ADMIN PANEL ───────────────────────────────────────────────
+        function openAdmin() {
+            document.getElementById('adminOverlay').classList.add('open');
+            document.getElementById('bottomNav').classList.add('hidden');
+        }
+
+        function closeAdmin() {
+            document.getElementById('adminOverlay').classList.remove('open');
+            document.getElementById('bottomNav').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

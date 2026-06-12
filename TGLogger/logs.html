@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="logs.css">
+    <title>TGLogger - Eintragen</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="feedback" id="feedback" aria-live="polite"></div>
+
+    <main class="content" id="mainContent">
+
+        <!-- SCHRITT 1: NAME -->
+        <section class="section">
+            <p class="section-label">1 — Name eingeben</p>
+            <div class="fake-input" id="fakeNameInput" onclick="openKeyboard('name')">
+                <span id="fakeNameText" class="fake-placeholder">Name eingeben…</span>
+            </div>
+        </section>
+
+        <!-- SCHRITT 2: ZEITEN -->
+        <section class="section">
+            <p class="section-label">2 — Zeiten</p>
+
+            <div class="time-block">
+                <div class="time-block-header">
+                    <span class="time-block-label">Startzeit</span>
+                    <label class="time-toggle">
+                        <input type="checkbox" id="startEnabled" checked onchange="toggleTime('start')">
+                        <span class="time-toggle-track"></span>
+                    </label>
+                </div>
+                <div class="time-picker" id="startPicker">
+                    <button class="time-btn large" onclick="adjustTime('start', -60)">−1h</button>
+                    <button class="time-btn" onclick="adjustTime('start', -10)">−10</button>
+                    <div class="time-display" id="startDisplay">00:00</div>
+                    <button class="time-btn" onclick="adjustTime('start', +10)">+10</button>
+                    <button class="time-btn large" onclick="adjustTime('start', +60)">+1h</button>
+                </div>
+            </div>
+
+            <div class="time-block">
+                <div class="time-block-header">
+                    <span class="time-block-label">Ausloggzeit</span>
+                    <label class="time-toggle">
+                        <input type="checkbox" id="endEnabled" onchange="toggleTime('end')">
+                        <span class="time-toggle-track"></span>
+                    </label>
+                </div>
+                <div class="time-picker disabled" id="endPicker">
+                    <button class="time-btn large" onclick="adjustTime('end', -60)">−1h</button>
+                    <button class="time-btn" onclick="adjustTime('end', -10)">−10</button>
+                    <div class="time-display" id="endDisplay">00:00</div>
+                    <button class="time-btn" onclick="adjustTime('end', +10)">+10</button>
+                    <button class="time-btn large" onclick="adjustTime('end', +60)">+1h</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SCHRITT 3: KOMMENTAR -->
+        <section class="section">
+            <p class="section-label">3 — Kommentar <span class="optional">optional</span></p>
+            <div class="fake-input" id="fakeCommentInput" onclick="openKeyboard('comment')">
+                <span id="fakeCommentText" class="fake-placeholder">z.B. Training, kurze Pause…</span>
+            </div>
+        </section>
+
+        <!-- SUBMIT -->
+        <button class="submit-btn" id="submitBtn" onclick="submitEntry()">Eintragen</button>
+
+    </main>
+
+    <!-- BOTTOM NAV -->
+    <header id="bottomNav">
+        <nav>
+            <ul>
+                <li><a href="info.html">Information</a></li>
+                <li><a href="logs.html">Eintragen</a></li>
+                <li><a href="home.html">Home</a></li>
+                <li><a href="inventory.html">Inventar</a></li>
+                <li><a href="settings.html">Einstellungen</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- KEYBOARD OVERLAY -->
+    <div class="kb-overlay" id="kbOverlay">
+        <div class="kb-inputbar">
+            <button class="kb-action-btn kb-close" onclick="closeKeyboard()" aria-label="Tastatur schließen">&#8592;</button>
+            <div class="kb-preview" id="kbPreview"></div>
+            <button class="kb-action-btn kb-confirm" onclick="confirmKeyboard()" aria-label="Bestätigen">&#10003;</button>
+        </div>
+        <div class="keyboard" id="keyboard">
+            <div class="kb-row">
+                <button class="kb-key" onclick="kbType('q')">Q</button>
+                <button class="kb-key" onclick="kbType('w')">W</button>
+                <button class="kb-key" onclick="kbType('e')">E</button>
+                <button class="kb-key" onclick="kbType('r')">R</button>
+                <button class="kb-key" onclick="kbType('t')">T</button>
+                <button class="kb-key" onclick="kbType('z')">Z</button>
+                <button class="kb-key" onclick="kbType('u')">U</button>
+                <button class="kb-key" onclick="kbType('i')">I</button>
+                <button class="kb-key" onclick="kbType('o')">O</button>
+                <button class="kb-key" onclick="kbType('p')">P</button>
+                <button class="kb-key" onclick="kbType('ü')">Ü</button>
+            </div>
+            <div class="kb-row">
+                <button class="kb-key" onclick="kbType('a')">A</button>
+                <button class="kb-key" onclick="kbType('s')">S</button>
+                <button class="kb-key" onclick="kbType('d')">D</button>
+                <button class="kb-key" onclick="kbType('f')">F</button>
+                <button class="kb-key" onclick="kbType('g')">G</button>
+                <button class="kb-key" onclick="kbType('h')">H</button>
+                <button class="kb-key" onclick="kbType('j')">J</button>
+                <button class="kb-key" onclick="kbType('k')">K</button>
+                <button class="kb-key" onclick="kbType('l')">L</button>
+                <button class="kb-key" onclick="kbType('ö')">Ö</button>
+                <button class="kb-key" onclick="kbType('ä')">Ä</button>
+            </div>
+            <div class="kb-row">
+                <button class="kb-key kb-shift" id="shiftBtn" onclick="toggleShift()">&#8679;</button>
+                <button class="kb-key" onclick="kbType('y')">Y</button>
+                <button class="kb-key" onclick="kbType('x')">X</button>
+                <button class="kb-key" onclick="kbType('c')">C</button>
+                <button class="kb-key" onclick="kbType('v')">V</button>
+                <button class="kb-key" onclick="kbType('b')">B</button>
+                <button class="kb-key" onclick="kbType('n')">N</button>
+                <button class="kb-key" onclick="kbType('m')">M</button>
+                <button class="kb-key" onclick="kbType('-')">-</button>
+                <button class="kb-key kb-backspace" onclick="kbBackspace()">&#9003;</button>
+            </div>
+            <div class="kb-row kb-bottom-row">
+                <button class="kb-key kb-num" onclick="kbType('1')">1</button>
+                <button class="kb-key kb-num" onclick="kbType('2')">2</button>
+                <button class="kb-key kb-num" onclick="kbType('3')">3</button>
+                <button class="kb-key kb-num" onclick="kbType('4')">4</button>
+                <button class="kb-key kb-num" onclick="kbType('5')">5</button>
+                <button class="kb-key kb-num" onclick="kbType('6')">6</button>
+                <button class="kb-key kb-num" onclick="kbType('7')">7</button>
+                <button class="kb-key kb-num" onclick="kbType('8')">8</button>
+                <button class="kb-key kb-num" onclick="kbType('9')">9</button>
+                <button class="kb-key kb-num" onclick="kbType('0')">0</button>
+            </div>
+            <div class="kb-row">
+                <button class="kb-key kb-space" onclick="kbType(' ')">Leerzeichen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── KONFIGURATION ─────────────────────────────────────────────
+        const SHEET_URL = "DEINE_APPS_SCRIPT_URL_HIER";
+        // ─────────────────────────────────────────────────────────────
+
+        // ── NAMEN ─────────────────────────────────────────────────────
+        let selectedName = null;
+        const now = new Date();
+        let startMinutes = now.getHours() * 60 + now.getMinutes();
+        let endMinutes   = now.getHours() * 60 + now.getMinutes();
+        let startActive  = true;
+        let endActive    = false;
+
+        function pad(n) { return String(n).padStart(2, '0'); }
+
+        function minToStr(min) {
+            const h = Math.floor(((min % 1440) + 1440) % 1440 / 60);
+            const m = ((min % 1440) + 1440) % 1440 % 60;
+            return pad(h) + ':' + pad(m);
+        }
+
+        function renderTimes() {
+            document.getElementById('startDisplay').textContent = minToStr(startMinutes);
+            document.getElementById('endDisplay').textContent   = minToStr(endMinutes);
+        }
+
+        function adjustTime(which, delta) {
+            if (which === 'start' && startActive) {
+                startMinutes += delta;
+            } else if (which === 'end' && endActive) {
+                endMinutes += delta;
+            }
+            renderTimes();
+        }
+
+        function toggleTime(which) {
+            if (which === 'start') {
+                startActive = document.getElementById('startEnabled').checked;
+                document.getElementById('startPicker').classList.toggle('disabled', !startActive);
+            } else {
+                endActive = document.getElementById('endEnabled').checked;
+                document.getElementById('endPicker').classList.toggle('disabled', !endActive);
+            }
+        }
+
+        renderTimes();
+
+        // ── KEYBOARD ──────────────────────────────────────────────────
+        let kbTarget = null;
+        let kbValue  = '';
+        let shiftOn  = true;
+
+        function openKeyboard(target) {
+            kbTarget = target;
+            kbValue = target === 'name'
+                ? (selectedName || '')
+                : (document.getElementById('fakeCommentText').dataset.value || '');
+            updateKbPreview();
+            document.getElementById('kbOverlay').classList.add('open');
+            document.getElementById('bottomNav').classList.add('hidden');
+            shiftOn = kbValue.length === 0;
+            updateShiftDisplay();
+        }
+
+        function closeKeyboard() {
+            document.getElementById('kbOverlay').classList.remove('open');
+            document.getElementById('bottomNav').classList.remove('hidden');
+            kbTarget = null;
+        }
+
+        function confirmKeyboard() {
+            const val = kbValue.trim();
+            if (kbTarget === 'name') {
+                if (val) {
+                    selectedName = val;
+                }
+                updateFakeInput();
+            } else {
+                const el = document.getElementById('fakeCommentText');
+                el.dataset.value = val;
+                el.textContent = val || 'z.B. Training, kurze Pause…';
+                el.classList.toggle('fake-placeholder', !val);
+            }
+            closeKeyboard();
+        }
+
+        function kbType(char) {
+            kbValue += shiftOn ? char.toUpperCase() : char;
+            shiftOn = false;
+            updateShiftDisplay();
+            updateKbPreview();
+        }
+
+        function kbBackspace() {
+            kbValue = kbValue.slice(0, -1);
+            updateKbPreview();
+        }
+
+        function toggleShift() {
+            shiftOn = !shiftOn;
+            updateShiftDisplay();
+        }
+
+        function updateShiftDisplay() {
+            document.getElementById('shiftBtn').classList.toggle('active', shiftOn);
+        }
+
+        function updateKbPreview() {
+            const el = document.getElementById('kbPreview');
+            el.textContent = kbValue;
+            el.classList.toggle('empty', kbValue.length === 0);
+        }
+
+        function updateFakeInput() {
+            const el = document.getElementById('fakeNameText');
+            el.textContent = selectedName || 'Name eingeben…';
+            el.classList.toggle('fake-placeholder', !selectedName);
+        }
+
+        // ── SUBMIT ────────────────────────────────────────────────────
+        async function submitEntry() {
+            const name = selectedName || '';
+            if (!name) { showFeedback('Bitte zuerst einen Namen auswählen.', 'error'); return; }
+            if (!startActive && !endActive) { showFeedback('Bitte mindestens eine Zeit aktivieren.', 'error'); return; }
+
+            const comment = (document.getElementById('fakeCommentText').dataset.value || '').trim();
+            const dateStr = now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            const payload = {
+                name:      name,
+                startzeit: startActive ? dateStr + ' ' + minToStr(startMinutes) : '',
+                endzeit:   endActive   ? dateStr + ' ' + minToStr(endMinutes)   : '',
+                comment:   comment
+            };
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Wird eingetragen…';
+
+            try {
+                await fetch(SHEET_URL, {
+                    method: 'POST', mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const info = [
+                    startActive ? 'Start ' + minToStr(startMinutes) : '',
+                    endActive   ? 'Ende '  + minToStr(endMinutes)   : ''
+                ].filter(Boolean).join(' → ');
+                showFeedback('✓ ' + name + ' — ' + info, 'success');
+                resetForm();
+            } catch (err) {
+                showFeedback('Fehler beim Eintragen. Bitte erneut versuchen.', 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Eintragen';
+        }
+
+        function showFeedback(msg, type) {
+            const el = document.getElementById('feedback');
+            el.textContent = msg;
+            el.className = 'feedback show ' + type;
+            setTimeout(() => { el.className = 'feedback'; }, 4000);
+        }
+
+        function resetForm() {
+            selectedName = null;
+            kbValue = '';
+            updateFakeInput();
+            const ce = document.getElementById('fakeCommentText');
+            ce.textContent = 'z.B. Training, kurze Pause…';
+            ce.classList.add('fake-placeholder');
+            ce.dataset.value = '';
+            const fresh = new Date();
+            startMinutes = fresh.getHours() * 60 + fresh.getMinutes();
+            endMinutes   = fresh.getHours() * 60 + fresh.getMinutes();
+            renderTimes();
+        }
+    </script>
+</body>
+</html>

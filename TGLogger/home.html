@@ -1,25 +1,215 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <link rel="stylesheet" href="home.css">
-        <link rel="shortcut icon" type="image/x-icon" href="bilder/Vex_icon.ico"/>
-        <title>
-            Home - TGLogger
-        </title>
-    </head>
-    <body>
-        <header>
-            <nav>
-                <div class="center background">
-                    <p>TGLogger</p>
-                </div>
-            </nav>
-        </header>
-        <p>Was soll hier drauf:</p>
-        <ul>
-            <li>Chip ranlegen um einzuloggen.</li>
-            <li>TG logo 5x drücken um in admin space zu kommen</li>
-        </ul>
-    </body>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="home.css">
+    <title>TGLogger - Main</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=BBH+Bogle&family=Zalando+Sans+Expanded:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+</head>
+<body class="background">
+    <div class="topbar" role="banner" aria-hidden="false">
+        <img src="images/TG-Logo.png" alt="TG Logo" class="topbar-logo">
+        <div id="datetime" class="datetime" aria-live="polite"></div>
+    </div>
+    <header>
+        <nav>
+            <div>
+                <ul>
+                    <li><a class="navigator" href="info.html">Information</a></li>
+                    <li><a class="navigator" href="logs.html">Eintragen</a></li>
+                    <li><a class="navigator" href="home.html">Home</a></li>
+                    <li><a class="navigator" href="inventory.html">Inventar</a></li>
+                    <li><a class="navigator" href="settings.html">Einstellungen</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+    <div class="left-clock-wrapper" role="region" aria-label="Uhr und Status">
+        <div class="full-clock" role="main" aria-label="Große digitale Uhr">
+            <div class="clock-line clock-hm" aria-hidden="false">
+                <span id="clockHours">00</span><span class="clock-sep">:</span><span id="clockMinutes">00</span>
+            </div>
+            <div class="clock-line clock-sec" id="clockSeconds" aria-live="polite">00</div>
+        </div>
+        <div class="login-status" role="status" aria-live="polite" aria-atomic="true">
+            <span class="status-dot offline" id="statusDot" aria-hidden="true"></span>
+            <span class="status-text">Eingeloggt als:</span>
+            <span class="status-name" id="statusName">Tim Weiberg</span>
+        </div>
+    </div>
+
+    <aside class="right-panel" role="complementary" aria-label="Rechte Informationsfläche">
+        <div class="right-panel-inner">
+            <h3>Ereignisse:</h3>
+            <div id="events">
+            </div>
+        </div>
+    </aside>
+
+    <script>
+const calendarUrl = "https://api.allorigins.win/raw?url=" +
+    encodeURIComponent("https://calendar.google.com/calendar/ical/1aa282097260ac607048ed333a2934272bf95e0d24622417da4279c4437440cf%40group.calendar.google.com/public/basic.ics");
+const UPDATE_INTERVAL = 2 * 60 * 1000; // 2 Minuten
+
+function loadCalendar() {
+    fetch(calendarUrl)
+        .then(res => res.text())
+        .then(text => {
+            const events = parseICS(text);
+            const futureEvents = filterFutureEvents(events);
+            const container = document.getElementById("events");
+            container.innerHTML = "";
+
+            futureEvents.forEach(ev => {
+                const p = document.createElement("p");
+                p.textContent = `${ev.day}.${ev.month}. - ${ev.title}`;
+                container.appendChild(p);
+            });
+        })
+        .catch(err => {
+            console.error("Kalender konnte nicht geladen werden:", err);
+        });
+}
+
+/* iCal Parser */
+function parseICS(data) {
+    const lines = data.split("\n");
+    const events = [];
+    let event = null;
+
+    for (let line of lines) {
+        line = line.trim();
+
+        if (line === "BEGIN:VEVENT") event = {};
+        if (line === "END:VEVENT" && event) {
+            if (event.year && event.month && event.day && event.title) {
+                events.push(event);
+            }
+            event = null;
+        }
+
+        if (event) {
+            if (line.startsWith("SUMMARY:")) {
+                event.title = line.replace("SUMMARY:", "");
+            }
+
+            if (line.startsWith("DTSTART")) {
+                const date = line.split(":")[1]; // z.B. 20260214 oder 20260214T000000Z
+                event.year  = parseInt(date.substr(0, 4), 10);
+                event.month = parseInt(date.substr(4, 2), 10);
+                event.day   = parseInt(date.substr(6, 2), 10);
+            }
+        }
+    }
+
+    return events;
+}
+
+/* Nur zukünftige Termine + Sortierung */
+function filterFutureEvents(events) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return events
+        .filter(ev => {
+            const eventDate = new Date(ev.year, ev.month - 1, ev.day);
+            return eventDate >= today;
+        })
+        .sort((a, b) => {
+            const da = new Date(a.year, a.month - 1, a.day);
+            const db = new Date(b.year, b.month - 1, b.day);
+            return da - db;
+        });
+}
+
+/* Initial laden + alle 2 Minuten aktualisieren */
+loadCalendar();
+setInterval(loadCalendar, UPDATE_INTERVAL);
+</script>
+
+
+
+
+    <script>
+        (function updateDateTime(){
+            const el = document.getElementById('datetime');
+            function refresh(){
+                if (!el) return;
+                const now = new Date();
+                el.textContent = now.toLocaleString('de-DE', {weekday: 'short', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'});
+            }
+            refresh();
+            setInterval(refresh, 60000);
+        })();
+        (function startFullClock(){
+            const h = document.getElementById('clockHours');
+            const m = document.getElementById('clockMinutes');
+            const s = document.getElementById('clockSeconds');
+            function pad(n){ return n.toString().padStart(2,'0'); }
+            function tick(){
+                const now = new Date();
+                if (h) h.textContent = pad(now.getHours());
+                if (m) m.textContent = pad(now.getMinutes());
+                if (s) s.textContent = pad(now.getSeconds());
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
+
+        // Login status placeholder and helper (for NFC integration)
+        (function setupLoginStatus(){
+            const nameEl = document.getElementById('statusName');
+            const dotEl = document.getElementById('statusDot');
+            const textEl = document.querySelector('.login-status .status-text');
+
+            function fitName(el){
+                if (!el) return;
+                const parent = el.parentElement;
+                const dot = parent.querySelector('.status-dot');
+                const text = parent.querySelector('.status-text');
+                // calculate available width for the name (allow some gap + parent padding)
+                const parentStyles = window.getComputedStyle(parent);
+                const paddingLeft = parseFloat(parentStyles.paddingLeft) || 0;
+                const paddingRight = parseFloat(parentStyles.paddingRight) || 0;
+                const available = Math.max(40, parent.clientWidth - ((dot ? dot.offsetWidth : 0) + (text ? text.offsetWidth : 0) + paddingLeft + paddingRight + 24));
+                const maxSize = 32; // allow larger starting size
+                const minSize = 10; // minimum readable size
+                for(let fs = maxSize; fs >= minSize; fs -= 0.5){
+                    el.style.fontSize = fs + 'px';
+                    if (el.scrollWidth <= available) {
+                        break;
+                    }
+                }
+                // ensure minimum size if nothing fit
+                if (parseFloat(el.style.fontSize) < minSize) el.style.fontSize = minSize + 'px';
+            }
+
+            function setStatus(name, online){
+                if (nameEl) {
+                    nameEl.textContent = name || '';
+                    nameEl.style.fontSize = '';
+                    // run fitter after layout
+                    requestAnimationFrame(()=> fitName(nameEl));
+                }
+                if (dotEl) {
+                    dotEl.classList.toggle('online', !!online);
+                    dotEl.classList.toggle('offline', !online);
+                    dotEl.setAttribute('aria-label', online ? 'eingeloggt' : 'nicht eingeloggt');
+                }
+            }
+            // placeholder initial state (long name example)
+            setStatus('Tim Weiberg', true);
+
+            // re-fit on resize
+            window.addEventListener('resize', ()=> { if (nameEl) fitName(nameEl); });
+
+            // Expose updater for NFC integration (global for now)
+            window.updateLoginStatus = setStatus;
+        })();
+    </script>
+</body>
 </html>

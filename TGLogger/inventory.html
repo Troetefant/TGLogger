@@ -1,0 +1,165 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="inventory.css">
+    <title>TGLogger - Inventar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <span class="topbar-title">Inventar</span>
+        <button class="refresh-btn" id="refreshBtn" onclick="loadInventar()" aria-label="Liste aktualisieren">
+            <svg class="refresh-icon" id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+                <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+                <path d="M21 4v4h-4"/>
+                <path d="M3 20v-4h4"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- LISTE -->
+    <main class="content">
+        <div id="itemList" class="item-list">
+            <div class="loading" id="loadingState">
+                <div class="spinner"></div>
+                <span>Wird geladen…</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- BOTTOM NAV -->
+    <header id="bottomNav">
+        <nav>
+            <ul>
+                <li><a href="info.html">Information</a></li>
+                <li><a href="logs.html">Eintragen</a></li>
+                <li><a href="home.html">Home</a></li>
+                <li><a href="inventory.html">Inventar</a></li>
+                <li><a href="settings.html">Einstellungen</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <script>
+        // ── KONFIGURATION ─────────────────────────────────────────────
+        // Google Sheets CSV Export URL:
+        // Im Sheet: Datei → Im Web veröffentlichen → Tabellenblatt "Inventar" → CSV → Link kopieren
+        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT0mjPIQFpQ9RWEuPb-zTvz6vPukeVbZ2BpvymzdRQ3ZSJT0tPKv_pi3-YvcoUW0eVFq_SuXGNqj5Im/pubhtml";
+        // ─────────────────────────────────────────────────────────────
+
+        // Fallback-Daten wenn Sheet nicht erreichbar
+        const FALLBACK_ITEMS = [
+            { name: "Beispielgerät", beschreibung: "Noch kein Sheet verbunden", status: "verfügbar", von: "", start: "", ende: "" }
+        ];
+
+        async function loadInventar() {
+            const list    = document.getElementById('itemList');
+            const spinner = document.getElementById('loadingState');
+            const icon    = document.getElementById('refreshIcon');
+
+            icon.classList.add('spinning');
+            list.innerHTML = '';
+            list.appendChild(spinner);
+            spinner.style.display = 'flex';
+
+            try {
+                const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(SHEET_CSV_URL);
+                const res    = await fetch(proxyUrl);
+                const buffer = await res.arrayBuffer();
+                const text   = new TextDecoder('utf-8').decode(buffer);
+                const items  = parseCSV(text);
+                renderItems(items.length > 0 ? items : FALLBACK_ITEMS);
+            } catch (e) {
+                console.error(e);
+                renderItems(FALLBACK_ITEMS);
+            }
+
+            icon.classList.remove('spinning');
+        }
+
+        function parseCSV(text) {
+            const lines = text.trim().split('\n').slice(1); // erste Zeile = Header überspringen
+            return lines
+                .filter(l => l.trim().length > 0)
+                .map(line => {
+                    const cols = splitCSVLine(line);
+                    const rawStatus = (cols[2] || '').trim().toLowerCase();
+                    const status = rawStatus === 'a' || rawStatus === 'ausgeliehen'
+                        ? 'ausgeliehen' : 'verfügbar';
+                    return {
+                        name:         (cols[0] || '').trim(),
+                        beschreibung: (cols[1] || '').trim(),
+                        status:       status,
+                        von:          (cols[3] || '').trim(),
+                        start:        (cols[4] || '').trim(),
+                        ende:         (cols[5] || '').trim(),
+                    };
+                })
+                .filter(i => i.name.length > 0);
+        }
+
+        // CSV Parser der auch Anführungszeichen beachtet
+        function splitCSVLine(line) {
+            const result = [];
+            let cur = '', inQ = false;
+            for (let i = 0; i < line.length; i++) {
+                const c = line[i];
+                if (c === '"') { inQ = !inQ; }
+                else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+                else { cur += c; }
+            }
+            result.push(cur);
+            return result;
+        }
+
+        function renderItems(items) {
+            const list = document.getElementById('itemList');
+            list.innerHTML = '';
+
+            if (items.length === 0) {
+                list.innerHTML = '<p class="empty-hint">Keine Einträge gefunden.</p>';
+                return;
+            }
+
+            items.forEach(item => {
+                const ausgeliehen = item.status === 'ausgeliehen';
+                const card = document.createElement('div');
+                card.className = 'item-card' + (ausgeliehen ? ' borrowed' : '');
+
+                let dateInfo = '';
+                if (ausgeliehen) {
+                    const parts = [];
+                    if (item.start) parts.push('seit ' + item.start);
+                    if (item.ende)  parts.push('bis '  + item.ende);
+                    if (item.von)   dateInfo += `<span class="item-borrower">von ${item.von}</span>`;
+                    if (parts.length) dateInfo += `<span class="item-dates">${parts.join(' — ')}</span>`;
+                }
+
+                card.innerHTML = `
+                    <div class="item-main">
+                        <div class="item-info">
+                            <span class="item-name">${item.name}</span>
+                            ${item.beschreibung ? `<span class="item-desc">${item.beschreibung}</span>` : ''}
+                            ${dateInfo ? `<div class="item-date-row">${dateInfo}</div>` : ''}
+                        </div>
+                        <span class="item-badge ${ausgeliehen ? 'badge-out' : 'badge-ok'}">
+                            ${ausgeliehen ? 'Ausgeliehen' : 'Verfügbar'}
+                        </span>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        // Beim Laden direkt starten
+        loadInventar();
+    </script>
+</body>
+</html>
