@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="inventory.css">
+    <link rel="stylesheet" href="inventar.css">
     <title>TGLogger - Inventar</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,7 +41,7 @@
                 <li><a href="info.html">Information</a></li>
                 <li><a href="logs.html">Eintragen</a></li>
                 <li><a href="home.html">Home</a></li>
-                <li><a href="inventory.html">Inventar</a></li>
+                <li><a href="inventar.html">Inventar</a></li>
                 <li><a href="settings.html">Einstellungen</a></li>
             </ul>
         </nav>
@@ -51,7 +51,7 @@
         // ── KONFIGURATION ─────────────────────────────────────────────
         // Google Sheets CSV Export URL:
         // Im Sheet: Datei → Im Web veröffentlichen → Tabellenblatt "Inventar" → CSV → Link kopieren
-        const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT0mjPIQFpQ9RWEuPb-zTvz6vPukeVbZ2BpvymzdRQ3ZSJT0tPKv_pi3-YvcoUW0eVFq_SuXGNqj5Im/pubhtml";
+        const SHEET_CSV_URL = "/inventar-data";
         // ─────────────────────────────────────────────────────────────
 
         // Fallback-Daten wenn Sheet nicht erreichbar
@@ -69,17 +69,16 @@
             list.appendChild(spinner);
             spinner.style.display = 'flex';
 
-            try {
-                const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(SHEET_CSV_URL);
-                const res    = await fetch(proxyUrl);
-                const buffer = await res.arrayBuffer();
-                const text   = new TextDecoder('utf-8').decode(buffer);
-                const items  = parseCSV(text);
+           try {
+            const res    = await fetch(SHEET_CSV_URL);
+            const buffer = await res.arrayBuffer();
+            const text   = new TextDecoder('utf-8').decode(buffer);
+            const items  = parseCSV(text);
                 renderItems(items.length > 0 ? items : FALLBACK_ITEMS);
-            } catch (e) {
-                console.error(e);
-                renderItems(FALLBACK_ITEMS);
-            }
+        } catch (e) {
+    console.error(e);
+    renderItems(FALLBACK_ITEMS);
+}
 
             icon.classList.remove('spinning');
         }
