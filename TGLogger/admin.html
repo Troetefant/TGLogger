@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -21,7 +22,7 @@
     <div class="tab-bar">
         <button class="tab active" id="tab-inventar" onclick="showTab('inventar')">📦 Inventar</button>
         <button class="tab" id="tab-chips"    onclick="showTab('chips')">📡 NFC-Chips</button>
-        <button class="tab" id="tab-mitglieder" onclick="showTab('mitglieder')">👥 Mitglieder</button>
+        <button class="tab" id="tab-qr" onclick="showTab('qr')">🔗 QR-Codes</button>
     </div>
 
     <!-- ── TAB: INVENTAR ── -->
@@ -38,10 +39,20 @@
         <div class="list" id="chipsList"></div>
     </div>
 
-    <!-- ── TAB: MITGLIEDER ── -->
-    <div class="tab-content" id="content-mitglieder">
-        <div class="list" id="mitgliederList"></div>
-        <button class="fab" onclick="openForm('mitglied-add')">+</button>
+    <!-- ── TAB: QR-CODES ── -->
+    <div class="tab-content" id="content-qr">
+        <div class="qr-grid">
+            <div class="qr-card">
+                <p class="qr-label">Log-Liste</p>
+                <div id="qr-logs"></div>
+                <p class="qr-url">Google Sheets — nur lesen</p>
+            </div>
+            <div class="qr-card">
+                <p class="qr-label">Inventarliste</p>
+                <div id="qr-inventar"></div>
+                <p class="qr-url">Google Sheets — Schreibzugriff</p>
+            </div>
+        </div>
     </div>
 
     <!-- ── FORM OVERLAY ── -->
@@ -362,15 +373,7 @@
                 </div>
             `;
         } else if (type === 'mitglied-add') {
-            title.textContent = 'Mitglied hinzufügen';
-            body.innerHTML = `
-                <div class="form-field">
-                    <label>Name</label>
-                    <div class="fake-input" onclick="openKeyboard('mitglied-name')">
-                        <span id="mitglied-name-text" class="fake-placeholder">Name eingeben…</span>
-                    </div>
-                </div>
-            `;
+            // entfernt
         }
 
         document.getElementById('formOverlay').classList.add('open');
@@ -418,15 +421,6 @@
                 body: JSON.stringify({ uid: pendingUID, name })
             });
             await loadChips();
-        } else if (currentForm === 'mitglied-add') {
-            const name = getFormText('mitglied-name');
-            if (!name) return;
-            await fetch('/admin/members', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
-            });
-            await loadMembers();
         }
         closeForm();
     }
@@ -435,6 +429,22 @@
         const el = document.getElementById(id + '-text');
         if (!el || el.classList.contains('fake-placeholder')) return '';
         return el.textContent.trim();
+    }
+
+    // ── QR CODES ──────────────────────────────────────────────────
+    function initQR() {
+        new QRCode(document.getElementById('qr-logs'), {
+            text: 'https://docs.google.com/spreadsheets/d/1e-ALBWNy-vA7xDhyh7MW1McnOO2A0_xoS2Nu02GLB14/edit?usp=sharing',
+            width: 220, height: 220,
+            colorDark: '#111111', colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
+        new QRCode(document.getElementById('qr-inventar'), {
+            text: 'https://docs.google.com/spreadsheets/d/1WW_qR45lTtLJuVniZpM87JqKcvrs0GCSEIEKzi_bxa8/edit?usp=sharing',
+            width: 220, height: 220,
+            colorDark: '#111111', colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+        });
     }
 
     // ── KEYBOARD ──────────────────────────────────────────────────
@@ -498,7 +508,7 @@
     // ── INIT ──────────────────────────────────────────────────────
     loadInventar();
     loadChips();
-    loadMembers();
+    initQR();
     </script>
 </body>
 </html>
