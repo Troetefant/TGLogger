@@ -216,9 +216,10 @@
         }
 
         function checkPin() {
-            if (pinValue === CORRECT_PIN) {
-                closePinOverlay();
-                openAdmin();
+    if (pinValue === CORRECT_PIN) {
+        sessionStorage.setItem('adminAuth', '1');
+        closePinOverlay();
+        window.location.href = 'admin.html';
             } else {
                 document.getElementById('pinError').textContent = "Falscher PIN";
                 // Kurz schütteln dann reset

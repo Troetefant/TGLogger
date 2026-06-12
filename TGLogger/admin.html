@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="admin.css">
+    <title>TGLogger - Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zalando+Sans+Expanded:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <span class="topbar-title">Admin-Modus</span>
+        <button class="logout-btn" onclick="logout()">Abmelden</button>
+    </div>
+
+    <!-- TABS -->
+    <div class="tab-bar">
+        <button class="tab active" id="tab-inventar" onclick="showTab('inventar')">📦 Inventar</button>
+        <button class="tab" id="tab-chips"    onclick="showTab('chips')">📡 NFC-Chips</button>
+        <button class="tab" id="tab-mitglieder" onclick="showTab('mitglieder')">👥 Mitglieder</button>
+    </div>
+
+    <!-- ── TAB: INVENTAR ── -->
+    <div class="tab-content active" id="content-inventar">
+        <div class="list" id="inventarList"></div>
+        <button class="fab" onclick="openForm('inventar-add')">+</button>
+    </div>
+
+    <!-- ── TAB: NFC-CHIPS ── -->
+    <div class="tab-content" id="content-chips">
+        <button class="scan-btn" id="scanBtn" onclick="startChipScan()">
+            <span id="scanBtnText">📡 Chip scannen &amp; registrieren</span>
+        </button>
+        <div class="list" id="chipsList"></div>
+    </div>
+
+    <!-- ── TAB: MITGLIEDER ── -->
+    <div class="tab-content" id="content-mitglieder">
+        <div class="list" id="mitgliederList"></div>
+        <button class="fab" onclick="openForm('mitglied-add')">+</button>
+    </div>
+
+    <!-- ── FORM OVERLAY ── -->
+    <div class="form-overlay" id="formOverlay">
+        <div class="form-box" id="formBox">
+            <div class="form-header">
+                <span class="form-title" id="formTitle">Eintrag hinzufügen</span>
+                <button class="form-close" onclick="closeForm()">✕</button>
+            </div>
+            <div class="form-body" id="formBody"></div>
+            <button class="form-submit" id="formSubmit" onclick="submitForm()">Speichern</button>
+        </div>
+    </div>
+
+    <!-- ── KEYBOARD OVERLAY ── -->
+    <div class="kb-overlay" id="kbOverlay">
+        <div class="kb-inputbar">
+            <button class="kb-action-btn kb-close" onclick="closeKeyboard()">&#8592;</button>
+            <div class="kb-preview" id="kbPreview"></div>
+            <button class="kb-action-btn kb-confirm" onclick="confirmKeyboard()">&#10003;</button>
+        </div>
+        <div class="keyboard">
+            <div class="kb-row">
+                <button class="kb-key" onclick="kbType('q')">Q</button>
+                <button class="kb-key" onclick="kbType('w')">W</button>
+                <button class="kb-key" onclick="kbType('e')">E</button>
+                <button class="kb-key" onclick="kbType('r')">R</button>
+                <button class="kb-key" onclick="kbType('t')">T</button>
+                <button class="kb-key" onclick="kbType('z')">Z</button>
+                <button class="kb-key" onclick="kbType('u')">U</button>
+                <button class="kb-key" onclick="kbType('i')">I</button>
+                <button class="kb-key" onclick="kbType('o')">O</button>
+                <button class="kb-key" onclick="kbType('p')">P</button>
+                <button class="kb-key" onclick="kbType('ü')">Ü</button>
+            </div>
+            <div class="kb-row">
+                <button class="kb-key" onclick="kbType('a')">A</button>
+                <button class="kb-key" onclick="kbType('s')">S</button>
+                <button class="kb-key" onclick="kbType('d')">D</button>
+                <button class="kb-key" onclick="kbType('f')">F</button>
+                <button class="kb-key" onclick="kbType('g')">G</button>
+                <button class="kb-key" onclick="kbType('h')">H</button>
+                <button class="kb-key" onclick="kbType('j')">J</button>
+                <button class="kb-key" onclick="kbType('k')">K</button>
+                <button class="kb-key" onclick="kbType('l')">L</button>
+                <button class="kb-key" onclick="kbType('ö')">Ö</button>
+                <button class="kb-key" onclick="kbType('ä')">Ä</button>
+            </div>
+            <div class="kb-row">
+                <button class="kb-key kb-shift" id="shiftBtn" onclick="toggleShift()">&#8679;</button>
+                <button class="kb-key" onclick="kbType('y')">Y</button>
+                <button class="kb-key" onclick="kbType('x')">X</button>
+                <button class="kb-key" onclick="kbType('c')">C</button>
+                <button class="kb-key" onclick="kbType('v')">V</button>
+                <button class="kb-key" onclick="kbType('b')">B</button>
+                <button class="kb-key" onclick="kbType('n')">N</button>
+                <button class="kb-key" onclick="kbType('m')">M</button>
+                <button class="kb-key" onclick="kbType('-')">-</button>
+                <button class="kb-key kb-backspace" onclick="kbBackspace()">&#9003;</button>
+            </div>
+            <div class="kb-row">
+                <button class="kb-key kb-num" onclick="kbType('1')">1</button>
+                <button class="kb-key kb-num" onclick="kbType('2')">2</button>
+                <button class="kb-key kb-num" onclick="kbType('3')">3</button>
+                <button class="kb-key kb-num" onclick="kbType('4')">4</button>
+                <button class="kb-key kb-num" onclick="kbType('5')">5</button>
+                <button class="kb-key kb-num" onclick="kbType('6')">6</button>
+                <button class="kb-key kb-num" onclick="kbType('7')">7</button>
+                <button class="kb-key kb-num" onclick="kbType('8')">8</button>
+                <button class="kb-key kb-num" onclick="kbType('9')">9</button>
+                <button class="kb-key kb-num" onclick="kbType('0')">0</button>
+            </div>
+            <div class="kb-row">
+                <button class="kb-key kb-space" onclick="kbType(' ')">Leerzeichen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // ── AUTH ──────────────────────────────────────────────────────
+    if (!sessionStorage.getItem('adminAuth')) {
+        window.location.href = 'settings.html';
+    }
+    function logout() {
+        sessionStorage.removeItem('adminAuth');
+        window.location.href = 'settings.html';
+    }
+
+    // ── TABS ──────────────────────────────────────────────────────
+    let activeTab = 'inventar';
+    function showTab(name) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        document.getElementById('content-' + name).classList.add('active');
+        activeTab = name;
+    }
+
+    // ── INVENTAR ──────────────────────────────────────────────────
+    let inventarItems = [];
+
+    async function loadInventar() {
+        const res = await fetch('/admin/inventar');
+        inventarItems = await res.json();
+        renderInventar();
+    }
+
+    function renderInventar() {
+        const list = document.getElementById('inventarList');
+        list.innerHTML = '';
+        if (inventarItems.length === 0) {
+            list.innerHTML = '<p class="empty">Noch keine Einträge.</p>';
+            return;
+        }
+        inventarItems.forEach((item, idx) => {
+            const ausgeliehen = item.status === 'ausgeliehen';
+            const div = document.createElement('div');
+            div.className = 'admin-card' + (ausgeliehen ? ' borrowed' : '');
+            div.innerHTML = `
+                <div class="card-main">
+                    <div class="card-info">
+                        <span class="card-name">${item.name}</span>
+                        ${item.beschreibung ? `<span class="card-sub">${item.beschreibung}</span>` : ''}
+                        ${ausgeliehen ? `<span class="card-sub orange">von ${item.von || '—'} | ${item.start || '—'} → ${item.ende || '—'}</span>` : ''}
+                    </div>
+                    <span class="badge ${ausgeliehen ? 'badge-out' : 'badge-ok'}">${ausgeliehen ? 'Ausgeliehen' : 'Verfügbar'}</span>
+                </div>
+                <div class="card-actions">
+                    <button class="action-btn ${ausgeliehen ? 'btn-green' : 'btn-orange'}"
+                        onclick="${ausgeliehen ? `returnItem(${idx})` : `openBorrowForm(${idx})`}">
+                        ${ausgeliehen ? '✓ Zurückgegeben' : '→ Ausleihen'}
+                    </button>
+                    <button class="action-btn btn-red" onclick="deleteInventar(${idx})">Löschen</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    async function deleteInventar(idx) {
+        await fetch('/admin/inventar/' + idx, { method: 'DELETE' });
+        await loadInventar();
+    }
+
+    async function returnItem(idx) {
+        await fetch('/admin/inventar/' + idx, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'verfügbar', von: '', start: '', ende: '' })
+        });
+        await loadInventar();
+    }
+
+    // ── NFC-CHIPS ─────────────────────────────────────────────────
+    let chips = [];
+    let scanPolling = null;
+    let scanBaseline = null;
+    let pendingUID = null;
+
+    async function loadChips() {
+        const res = await fetch('/admin/chips');
+        chips = await res.json();
+        renderChips();
+    }
+
+    function renderChips() {
+        const list = document.getElementById('chipsList');
+        list.innerHTML = '';
+        if (chips.length === 0) {
+            list.innerHTML = '<p class="empty">Noch keine Chips registriert.</p>';
+            return;
+        }
+        chips.forEach(chip => {
+            const div = document.createElement('div');
+            div.className = 'admin-card';
+            div.innerHTML = `
+                <div class="card-main">
+                    <div class="card-info">
+                        <span class="card-name">${chip.name}</span>
+                        <span class="card-sub uid-text">${chip.uid}</span>
+                    </div>
+                    <button class="action-btn btn-red" onclick="deleteChip('${chip.uid}')">Löschen</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    async function deleteChip(uid) {
+        await fetch('/admin/chips/' + uid, { method: 'DELETE' });
+        await loadChips();
+    }
+
+    async function startChipScan() {
+        const btn = document.getElementById('scanBtn');
+        const txt = document.getElementById('scanBtnText');
+
+        // Get current UID as baseline
+        const res = await fetch('/status');
+        const data = await res.json();
+        scanBaseline = data.uid;
+
+        txt.textContent = '⏳ Karte ans Lesegerät halten…';
+        btn.classList.add('scanning');
+        btn.onclick = stopChipScan;
+
+        scanPolling = setInterval(async () => {
+            const r = await fetch('/status');
+            const d = await r.json();
+            if (d.uid && d.uid !== scanBaseline) {
+                stopChipScan();
+                pendingUID = d.uid;
+                openForm('chip-add');
+            }
+        }, 500);
+    }
+
+    function stopChipScan() {
+        clearInterval(scanPolling);
+        const btn = document.getElementById('scanBtn');
+        const txt = document.getElementById('scanBtnText');
+        txt.textContent = '📡 Chip scannen & registrieren';
+        btn.classList.remove('scanning');
+        btn.onclick = startChipScan;
+    }
+
+    // ── MITGLIEDER ────────────────────────────────────────────────
+    let members = [];
+
+    async function loadMembers() {
+        const res = await fetch('/admin/members');
+        members = await res.json();
+        renderMembers();
+    }
+
+    function renderMembers() {
+        const list = document.getElementById('mitgliederList');
+        list.innerHTML = '';
+        if (members.length === 0) {
+            list.innerHTML = '<p class="empty">Noch keine Mitglieder.</p>';
+            return;
+        }
+        members.forEach(name => {
+            const div = document.createElement('div');
+            div.className = 'admin-card';
+            div.innerHTML = `
+                <div class="card-main">
+                    <span class="card-name">${name}</span>
+                    <button class="action-btn btn-red" onclick="deleteMember('${name}')">Löschen</button>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    async function deleteMember(name) {
+        await fetch('/admin/members/' + encodeURIComponent(name), { method: 'DELETE' });
+        await loadMembers();
+    }
+
+    // ── FORM OVERLAY ──────────────────────────────────────────────
+    let currentForm = null;
+    let currentInventarIdx = null;
+
+    function openForm(type) {
+        currentForm = type;
+        const title  = document.getElementById('formTitle');
+        const body   = document.getElementById('formBody');
+
+        if (type === 'inventar-add') {
+            title.textContent = 'Gegenstand hinzufügen';
+            body.innerHTML = `
+                <div class="form-field">
+                    <label>Name</label>
+                    <div class="fake-input" onclick="openKeyboard('inv-name')">
+                        <span id="inv-name-text" class="fake-placeholder">Name des Gegenstands…</span>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label>Beschreibung</label>
+                    <div class="fake-input" onclick="openKeyboard('inv-desc')">
+                        <span id="inv-desc-text" class="fake-placeholder">z.B. Anzahl, Ort…</span>
+                    </div>
+                </div>
+            `;
+        } else if (type === 'inventar-borrow') {
+            title.textContent = 'Ausleihe eintragen';
+            body.innerHTML = `
+                <div class="form-field">
+                    <label>Ausgeliehen von</label>
+                    <div class="fake-input" onclick="openKeyboard('borrow-von')">
+                        <span id="borrow-von-text" class="fake-placeholder">Name der Person…</span>
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label>Ausleihstart</label>
+                    <input class="date-input" type="date" id="borrow-start">
+                </div>
+                <div class="form-field">
+                    <label>Ausleihende (geplant)</label>
+                    <input class="date-input" type="date" id="borrow-ende">
+                </div>
+            `;
+            // Set today as default for start
+            document.getElementById('borrow-start').value = new Date().toISOString().split('T')[0];
+        } else if (type === 'chip-add') {
+            title.textContent = 'Chip registrieren';
+            body.innerHTML = `
+                <div class="form-field">
+                    <label>UID</label>
+                    <div class="uid-display">${pendingUID || '—'}</div>
+                </div>
+                <div class="form-field">
+                    <label>Name</label>
+                    <div class="fake-input" onclick="openKeyboard('chip-name')">
+                        <span id="chip-name-text" class="fake-placeholder">Name zuordnen…</span>
+                    </div>
+                </div>
+            `;
+        } else if (type === 'mitglied-add') {
+            title.textContent = 'Mitglied hinzufügen';
+            body.innerHTML = `
+                <div class="form-field">
+                    <label>Name</label>
+                    <div class="fake-input" onclick="openKeyboard('mitglied-name')">
+                        <span id="mitglied-name-text" class="fake-placeholder">Name eingeben…</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        document.getElementById('formOverlay').classList.add('open');
+    }
+
+    function openBorrowForm(idx) {
+        currentInventarIdx = idx;
+        openForm('inventar-borrow');
+    }
+
+    function closeForm() {
+        document.getElementById('formOverlay').classList.remove('open');
+        currentForm = null;
+        currentInventarIdx = null;
+        pendingUID = null;
+    }
+
+    async function submitForm() {
+        if (currentForm === 'inventar-add') {
+            const name = getFormText('inv-name');
+            const desc = getFormText('inv-desc');
+            if (!name) return;
+            await fetch('/admin/inventar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, beschreibung: desc })
+            });
+            await loadInventar();
+        } else if (currentForm === 'inventar-borrow') {
+            const von   = getFormText('borrow-von');
+            const start = document.getElementById('borrow-start')?.value || '';
+            const ende  = document.getElementById('borrow-ende')?.value || '';
+            await fetch('/admin/inventar/' + currentInventarIdx, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'ausgeliehen', von, start, ende })
+            });
+            await loadInventar();
+        } else if (currentForm === 'chip-add') {
+            const name = getFormText('chip-name');
+            if (!name || !pendingUID) return;
+            await fetch('/admin/chips', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: pendingUID, name })
+            });
+            await loadChips();
+        } else if (currentForm === 'mitglied-add') {
+            const name = getFormText('mitglied-name');
+            if (!name) return;
+            await fetch('/admin/members', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            await loadMembers();
+        }
+        closeForm();
+    }
+
+    function getFormText(id) {
+        const el = document.getElementById(id + '-text');
+        if (!el || el.classList.contains('fake-placeholder')) return '';
+        return el.textContent.trim();
+    }
+
+    // ── KEYBOARD ──────────────────────────────────────────────────
+    let kbTarget = null;
+    let kbValue  = '';
+    let shiftOn  = true;
+
+    function openKeyboard(target) {
+        kbTarget = target;
+        kbValue  = getFormText(target) || '';
+        updateKbPreview();
+        document.getElementById('kbOverlay').classList.add('open');
+        shiftOn = kbValue.length === 0;
+        updateShiftDisplay();
+    }
+
+    function closeKeyboard() {
+        document.getElementById('kbOverlay').classList.remove('open');
+        kbTarget = null;
+    }
+
+    function confirmKeyboard() {
+        const val = kbValue.trim();
+        if (kbTarget) {
+            const el = document.getElementById(kbTarget + '-text');
+            if (el) {
+                el.textContent = val || el.getAttribute('data-placeholder') || '';
+                el.classList.toggle('fake-placeholder', !val);
+            }
+        }
+        closeKeyboard();
+    }
+
+    function kbType(char) {
+        kbValue += shiftOn ? char.toUpperCase() : char;
+        shiftOn = false;
+        updateShiftDisplay();
+        updateKbPreview();
+    }
+
+    function kbBackspace() {
+        kbValue = kbValue.slice(0, -1);
+        updateKbPreview();
+    }
+
+    function toggleShift() {
+        shiftOn = !shiftOn;
+        updateShiftDisplay();
+    }
+
+    function updateShiftDisplay() {
+        document.getElementById('shiftBtn').classList.toggle('active', shiftOn);
+    }
+
+    function updateKbPreview() {
+        const el = document.getElementById('kbPreview');
+        el.textContent = kbValue;
+        el.classList.toggle('empty', !kbValue);
+    }
+
+    // ── INIT ──────────────────────────────────────────────────────
+    loadInventar();
+    loadChips();
+    loadMembers();
+    </script>
+</body>
+</html>

@@ -224,7 +224,7 @@ nav a {
     position: fixed;
     top: 14px;
     left: 14px;
-    height: 48px;
+    height: 100px;
     width: auto;
     z-index: 500;
     cursor: pointer;

@@ -70,12 +70,12 @@
             spinner.style.display = 'flex';
 
            try {
-            const res    = await fetch(SHEET_CSV_URL);
-            const buffer = await res.arrayBuffer();
-            const text   = new TextDecoder('utf-8').decode(buffer);
-            const items  = parseCSV(text);
-                renderItems(items.length > 0 ? items : FALLBACK_ITEMS);
-        } catch (e) {
+    const res    = await fetch(SHEET_CSV_URL);
+    const buffer = await res.arrayBuffer();
+    const text   = new TextDecoder('utf-8').decode(buffer);
+    const items  = parseCSV(text);
+    renderItems(items.length > 0 ? items : FALLBACK_ITEMS);
+} catch (e) {
     console.error(e);
     renderItems(FALLBACK_ITEMS);
 }
