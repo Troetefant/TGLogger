@@ -337,6 +337,8 @@
         btn.textContent = '⏳ Importiere…';
         btn.disabled = true;
         try {
+            // Erst lokale Liste leeren
+            await fetch('/admin/inventar/clear', { method: 'POST' });
             const res  = await fetch('/inventar-data');
             const text = await res.text();
             const lines = text.trim().split('\n').slice(1);

@@ -70,7 +70,7 @@
             spinner.style.display = 'flex';
 
            try {
-    const res    = await fetch(SHEET_CSV_URL);
+    const res = await fetch('/admin/inventar?t=' + Date.now());
     const buffer = await res.arrayBuffer();
     const text   = new TextDecoder('utf-8').decode(buffer);
     const items  = parseCSV(text);
