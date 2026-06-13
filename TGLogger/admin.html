@@ -12,31 +12,56 @@
 </head>
 <body>
 
-    <!-- TOPBAR -->
     <div class="topbar">
         <span class="topbar-title">Admin-Modus</span>
         <button class="logout-btn" onclick="logout()">Abmelden</button>
     </div>
 
-    <!-- TABS -->
     <div class="tab-bar">
         <button class="tab active" id="tab-inventar" onclick="showTab('inventar')">📦 Inventar</button>
         <button class="tab" id="tab-chips"    onclick="showTab('chips')">📡 NFC-Chips</button>
-        <button class="tab" id="tab-qr" onclick="showTab('qr')">🔗 QR-Codes</button>
+        <button class="tab" id="tab-qr"       onclick="showTab('qr')">🔗 QR-Codes</button>
     </div>
 
     <!-- ── TAB: INVENTAR ── -->
     <div class="tab-content active" id="content-inventar">
-        <div class="list" id="inventarList"></div>
+        <button class="import-btn" onclick="importFromSheets()">
+            ↓ Aus Google Sheets importieren
+        </button>
+        <div class="list" id="inventarList">
+            <p class="empty">Wird geladen…</p>
+        </div>
         <button class="fab" onclick="openForm('inventar-add')">+</button>
     </div>
 
     <!-- ── TAB: NFC-CHIPS ── -->
     <div class="tab-content" id="content-chips">
-        <button class="scan-btn" id="scanBtn" onclick="startChipScan()">
-            <span id="scanBtnText">📡 Chip scannen &amp; registrieren</span>
-        </button>
-        <div class="list" id="chipsList"></div>
+        <div class="code-gen-box">
+            <p class="code-gen-title">Code Generator</p>
+            <p class="code-gen-sub">Gib 5 Ziffern ein → berechnet den gültigen 6-stelligen Code</p>
+
+            <div class="code-digits" id="codeDigits">_ _ _ _ _</div>
+
+            <div class="numpad-grid">
+                <button class="npkey" onclick="npType('1')">1</button>
+                <button class="npkey" onclick="npType('2')">2</button>
+                <button class="npkey" onclick="npType('3')">3</button>
+                <button class="npkey" onclick="npType('4')">4</button>
+                <button class="npkey" onclick="npType('5')">5</button>
+                <button class="npkey" onclick="npType('6')">6</button>
+                <button class="npkey" onclick="npType('7')">7</button>
+                <button class="npkey" onclick="npType('8')">8</button>
+                <button class="npkey" onclick="npType('9')">9</button>
+                <button class="npkey npkey-empty"></button>
+                <button class="npkey" onclick="npType('0')">0</button>
+                <button class="npkey npkey-back" onclick="npBack()">⌫</button>
+            </div>
+
+            <div class="code-result" id="codeResult" style="display:none">
+                <div class="code-result-code" id="codeResultCode"></div>
+                <div class="code-result-hint" id="codeResultHint"></div>
+            </div>
+        </div>
     </div>
 
     <!-- ── TAB: QR-CODES ── -->
@@ -55,15 +80,46 @@
         </div>
     </div>
 
-    <!-- ── FORM OVERLAY ── -->
+    <!-- ── INVENTAR ADD FORM ── -->
     <div class="form-overlay" id="formOverlay">
-        <div class="form-box" id="formBox">
+        <div class="form-box">
             <div class="form-header">
-                <span class="form-title" id="formTitle">Eintrag hinzufügen</span>
+                <span class="form-title" id="formTitle">Gegenstand hinzufügen</span>
                 <button class="form-close" onclick="closeForm()">✕</button>
             </div>
             <div class="form-body" id="formBody"></div>
-            <button class="form-submit" id="formSubmit" onclick="submitForm()">Speichern</button>
+            <button class="form-submit" onclick="submitForm()">Speichern</button>
+        </div>
+    </div>
+
+    <!-- ── BORROW OVERLAY (Airbnb Style) ── -->
+    <div class="form-overlay" id="borrowOverlay">
+        <div class="form-box">
+            <div class="form-header">
+                <span class="form-title">Ausleihe eintragen</span>
+                <button class="form-close" onclick="closeBorrow()">✕</button>
+            </div>
+            <div class="form-body">
+                <div class="form-field">
+                    <label>Ausgeliehen von</label>
+                    <div class="fake-input" onclick="openKeyboard('borrow-von')">
+                        <span id="borrow-von-text" class="fake-placeholder">Name der Person…</span>
+                    </div>
+                </div>
+                <div class="date-range-row">
+                    <div class="form-field" style="flex:1">
+                        <label>Von</label>
+                        <input class="date-input" type="date" id="borrow-start">
+                    </div>
+                    <div class="date-range-arrow">→</div>
+                    <div class="form-field" style="flex:1">
+                        <label>Bis</label>
+                        <input class="date-input" type="date" id="borrow-ende">
+                    </div>
+                </div>
+                <div class="date-duration" id="dateDuration"></div>
+            </div>
+            <button class="form-submit" onclick="submitBorrow()">Ausleihe speichern</button>
         </div>
     </div>
 
@@ -133,30 +189,31 @@
 
     <script>
     // ── AUTH ──────────────────────────────────────────────────────
-    if (!sessionStorage.getItem('adminAuth')) {
-        window.location.href = 'settings.html';
-    }
+    if (!sessionStorage.getItem('adminAuth')) window.location.href = 'settings.html';
     function logout() {
         sessionStorage.removeItem('adminAuth');
         window.location.href = 'settings.html';
     }
 
     // ── TABS ──────────────────────────────────────────────────────
-    let activeTab = 'inventar';
     function showTab(name) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.getElementById('tab-' + name).classList.add('active');
         document.getElementById('content-' + name).classList.add('active');
-        activeTab = name;
     }
 
     // ── INVENTAR ──────────────────────────────────────────────────
     let inventarItems = [];
+    let borrowIdx = null;
 
     async function loadInventar() {
-        const res = await fetch('/admin/inventar');
-        inventarItems = await res.json();
+        try {
+            const res = await fetch('/admin/inventar');
+            inventarItems = await res.json();
+        } catch(e) {
+            inventarItems = [];
+        }
         renderInventar();
     }
 
@@ -164,35 +221,56 @@
         const list = document.getElementById('inventarList');
         list.innerHTML = '';
         if (inventarItems.length === 0) {
-            list.innerHTML = '<p class="empty">Noch keine Einträge.</p>';
+            list.innerHTML = '<p class="empty">Noch keine Einträge. Oben importieren oder + tippen.</p>';
             return;
         }
         inventarItems.forEach((item, idx) => {
-            const ausgeliehen = item.status === 'ausgeliehen';
-            const div = document.createElement('div');
-            div.className = 'admin-card' + (ausgeliehen ? ' borrowed' : '');
-            div.innerHTML = `
+            const aus = item.status === 'ausgeliehen';
+            const card = document.createElement('div');
+            card.className = 'admin-card' + (aus ? ' borrowed' : '');
+            card.innerHTML = `
                 <div class="card-main">
                     <div class="card-info">
                         <span class="card-name">${item.name}</span>
                         ${item.beschreibung ? `<span class="card-sub">${item.beschreibung}</span>` : ''}
-                        ${ausgeliehen ? `<span class="card-sub orange">von ${item.von || '—'} | ${item.start || '—'} → ${item.ende || '—'}</span>` : ''}
+                        ${aus ? `<span class="card-sub orange">
+                            von <b>${item.von || '—'}</b> &nbsp;|&nbsp;
+                            ${formatDate(item.start)} → ${formatDate(item.ende)}
+                            ${daysLeft(item.ende)}
+                        </span>` : ''}
                     </div>
-                    <span class="badge ${ausgeliehen ? 'badge-out' : 'badge-ok'}">${ausgeliehen ? 'Ausgeliehen' : 'Verfügbar'}</span>
+                    <span class="badge ${aus ? 'badge-out' : 'badge-ok'}">${aus ? 'Ausgeliehen' : 'Verfügbar'}</span>
                 </div>
                 <div class="card-actions">
-                    <button class="action-btn ${ausgeliehen ? 'btn-green' : 'btn-orange'}"
-                        onclick="${ausgeliehen ? `returnItem(${idx})` : `openBorrowForm(${idx})`}">
-                        ${ausgeliehen ? '✓ Zurückgegeben' : '→ Ausleihen'}
-                    </button>
+                    ${aus
+                        ? `<button class="action-btn btn-green" onclick="returnItem(${idx})">✓ Zurückgegeben</button>`
+                        : `<button class="action-btn btn-orange" onclick="openBorrow(${idx})">→ Ausleihen</button>`
+                    }
                     <button class="action-btn btn-red" onclick="deleteInventar(${idx})">Löschen</button>
                 </div>
             `;
-            list.appendChild(div);
+            list.appendChild(card);
         });
     }
 
+    function formatDate(d) {
+        if (!d) return '—';
+        // yyyy-mm-dd → dd.mm.yy
+        const parts = d.split('-');
+        if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0].slice(2)}`;
+        return d;
+    }
+
+    function daysLeft(ende) {
+        if (!ende) return '';
+        const diff = Math.ceil((new Date(ende) - new Date()) / 86400000);
+        if (diff < 0) return `<b style="color:#d62d2d">(${Math.abs(diff)} Tage überfällig)</b>`;
+        if (diff === 0) return '<b>(heute fällig)</b>';
+        return `(noch ${diff} Tage)`;
+    }
+
     async function deleteInventar(idx) {
+        if (!confirm('Wirklich löschen?')) return;
         await fetch('/admin/inventar/' + idx, { method: 'DELETE' });
         await loadInventar();
     }
@@ -206,223 +284,144 @@
         await loadInventar();
     }
 
-    // ── NFC-CHIPS ─────────────────────────────────────────────────
-    let chips = [];
-    let scanPolling = null;
-    let scanBaseline = null;
-    let pendingUID = null;
-
-    async function loadChips() {
-        const res = await fetch('/admin/chips');
-        chips = await res.json();
-        renderChips();
+    function openBorrow(idx) {
+        borrowIdx = idx;
+        // Reset form
+        document.getElementById('borrow-von-text').textContent = 'Name der Person…';
+        document.getElementById('borrow-von-text').classList.add('fake-placeholder');
+        document.getElementById('borrow-start').value = new Date().toISOString().split('T')[0];
+        document.getElementById('borrow-ende').value = '';
+        updateDuration();
+        document.getElementById('borrowOverlay').classList.add('open');
     }
 
-    function renderChips() {
-        const list = document.getElementById('chipsList');
-        list.innerHTML = '';
-        if (chips.length === 0) {
-            list.innerHTML = '<p class="empty">Noch keine Chips registriert.</p>';
-            return;
+    function closeBorrow() {
+        document.getElementById('borrowOverlay').classList.remove('open');
+        borrowIdx = null;
+    }
+
+    function updateDuration() {
+        const start = document.getElementById('borrow-start').value;
+        const ende  = document.getElementById('borrow-ende').value;
+        const el    = document.getElementById('dateDuration');
+        if (start && ende) {
+            const diff = Math.ceil((new Date(ende) - new Date(start)) / 86400000);
+            el.textContent = diff > 0 ? `Dauer: ${diff} Tag${diff === 1 ? '' : 'e'}` : '';
+            el.style.color = diff > 0 ? '#00A8E8' : '#d62d2d';
+        } else {
+            el.textContent = '';
         }
-        chips.forEach(chip => {
-            const div = document.createElement('div');
-            div.className = 'admin-card';
-            div.innerHTML = `
-                <div class="card-main">
-                    <div class="card-info">
-                        <span class="card-name">${chip.name}</span>
-                        <span class="card-sub uid-text">${chip.uid}</span>
-                    </div>
-                    <button class="action-btn btn-red" onclick="deleteChip('${chip.uid}')">Löschen</button>
-                </div>
-            `;
-            list.appendChild(div);
+    }
+
+    document.getElementById('borrow-start').addEventListener('change', updateDuration);
+    document.getElementById('borrow-ende').addEventListener('change', updateDuration);
+
+    async function submitBorrow() {
+        const vonEl = document.getElementById('borrow-von-text');
+        const von   = vonEl.classList.contains('fake-placeholder') ? '' : vonEl.textContent.trim();
+        const start = document.getElementById('borrow-start').value;
+        const ende  = document.getElementById('borrow-ende').value;
+        if (!start) return;
+        await fetch('/admin/inventar/' + borrowIdx, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'ausgeliehen', von, start, ende })
         });
+        closeBorrow();
+        await loadInventar();
     }
 
-    async function deleteChip(uid) {
-        await fetch('/admin/chips/' + uid, { method: 'DELETE' });
-        await loadChips();
-    }
+    // Import aus Google Sheets
+    async function importFromSheets() {
+        const btn = document.querySelector('.import-btn');
+        btn.textContent = '⏳ Importiere…';
+        btn.disabled = true;
+        try {
+            const res  = await fetch('/inventar-data');
+            const text = await res.text();
+            const lines = text.trim().split('\n').slice(1);
+            const items = lines.filter(l => l.trim()).map(line => {
+                const cols = splitCSV(line);
+                const rawStatus = (cols[2] || '').trim().toLowerCase();
+                return {
+                    name:         (cols[0] || '').trim(),
+                    beschreibung: (cols[1] || '').trim(),
+                    status:       (rawStatus === 'ausgeliehen' || rawStatus === 'a') ? 'ausgeliehen' : 'verfügbar',
+                    von:          (cols[3] || '').trim(),
+                    start:        (cols[4] || '').trim(),
+                    ende:         (cols[5] || '').trim(),
+                };
+            }).filter(i => i.name);
 
-    async function startChipScan() {
-        const btn = document.getElementById('scanBtn');
-        const txt = document.getElementById('scanBtnText');
-
-        // Get current UID as baseline
-        const res = await fetch('/status');
-        const data = await res.json();
-        scanBaseline = data.uid;
-
-        txt.textContent = '⏳ Karte ans Lesegerät halten…';
-        btn.classList.add('scanning');
-        btn.onclick = stopChipScan;
-
-        scanPolling = setInterval(async () => {
-            const r = await fetch('/status');
-            const d = await r.json();
-            if (d.uid && d.uid !== scanBaseline) {
-                stopChipScan();
-                pendingUID = d.uid;
-                openForm('chip-add');
+            // POST each item
+            for (const item of items) {
+                await fetch('/admin/inventar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(item)
+                });
             }
-        }, 500);
-    }
-
-    function stopChipScan() {
-        clearInterval(scanPolling);
-        const btn = document.getElementById('scanBtn');
-        const txt = document.getElementById('scanBtnText');
-        txt.textContent = '📡 Chip scannen & registrieren';
-        btn.classList.remove('scanning');
-        btn.onclick = startChipScan;
-    }
-
-    // ── MITGLIEDER ────────────────────────────────────────────────
-    let members = [];
-
-    async function loadMembers() {
-        const res = await fetch('/admin/members');
-        members = await res.json();
-        renderMembers();
-    }
-
-    function renderMembers() {
-        const list = document.getElementById('mitgliederList');
-        list.innerHTML = '';
-        if (members.length === 0) {
-            list.innerHTML = '<p class="empty">Noch keine Mitglieder.</p>';
-            return;
+            await loadInventar();
+            btn.textContent = `✓ ${items.length} Einträge importiert`;
+        } catch(e) {
+            btn.textContent = '✗ Fehler beim Import';
         }
-        members.forEach(name => {
-            const div = document.createElement('div');
-            div.className = 'admin-card';
-            div.innerHTML = `
-                <div class="card-main">
-                    <span class="card-name">${name}</span>
-                    <button class="action-btn btn-red" onclick="deleteMember('${name}')">Löschen</button>
-                </div>
-            `;
-            list.appendChild(div);
-        });
+        setTimeout(() => {
+            btn.textContent = '↓ Aus Google Sheets importieren';
+            btn.disabled = false;
+        }, 3000);
     }
 
-    async function deleteMember(name) {
-        await fetch('/admin/members/' + encodeURIComponent(name), { method: 'DELETE' });
-        await loadMembers();
+    function splitCSV(line) {
+        const result = [];
+        let cur = '', inQ = false;
+        for (const c of line) {
+            if (c === '"') inQ = !inQ;
+            else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+            else cur += c;
+        }
+        result.push(cur);
+        return result;
     }
 
-    // ── FORM OVERLAY ──────────────────────────────────────────────
+    // ── ADD FORM ──────────────────────────────────────────────────
     let currentForm = null;
-    let currentInventarIdx = null;
 
     function openForm(type) {
         currentForm = type;
-        const title  = document.getElementById('formTitle');
-        const body   = document.getElementById('formBody');
-
-        if (type === 'inventar-add') {
-            title.textContent = 'Gegenstand hinzufügen';
-            body.innerHTML = `
-                <div class="form-field">
-                    <label>Name</label>
-                    <div class="fake-input" onclick="openKeyboard('inv-name')">
-                        <span id="inv-name-text" class="fake-placeholder">Name des Gegenstands…</span>
-                    </div>
+        document.getElementById('formBody').innerHTML = `
+            <div class="form-field">
+                <label>Name</label>
+                <div class="fake-input" onclick="openKeyboard('inv-name')">
+                    <span id="inv-name-text" class="fake-placeholder">Name des Gegenstands…</span>
                 </div>
-                <div class="form-field">
-                    <label>Beschreibung</label>
-                    <div class="fake-input" onclick="openKeyboard('inv-desc')">
-                        <span id="inv-desc-text" class="fake-placeholder">z.B. Anzahl, Ort…</span>
-                    </div>
+            </div>
+            <div class="form-field">
+                <label>Beschreibung</label>
+                <div class="fake-input" onclick="openKeyboard('inv-desc')">
+                    <span id="inv-desc-text" class="fake-placeholder">z.B. Anzahl, Ort…</span>
                 </div>
-            `;
-        } else if (type === 'inventar-borrow') {
-            title.textContent = 'Ausleihe eintragen';
-            body.innerHTML = `
-                <div class="form-field">
-                    <label>Ausgeliehen von</label>
-                    <div class="fake-input" onclick="openKeyboard('borrow-von')">
-                        <span id="borrow-von-text" class="fake-placeholder">Name der Person…</span>
-                    </div>
-                </div>
-                <div class="form-field">
-                    <label>Ausleihstart</label>
-                    <input class="date-input" type="date" id="borrow-start">
-                </div>
-                <div class="form-field">
-                    <label>Ausleihende (geplant)</label>
-                    <input class="date-input" type="date" id="borrow-ende">
-                </div>
-            `;
-            // Set today as default for start
-            document.getElementById('borrow-start').value = new Date().toISOString().split('T')[0];
-        } else if (type === 'chip-add') {
-            title.textContent = 'Chip registrieren';
-            body.innerHTML = `
-                <div class="form-field">
-                    <label>UID</label>
-                    <div class="uid-display">${pendingUID || '—'}</div>
-                </div>
-                <div class="form-field">
-                    <label>Name</label>
-                    <div class="fake-input" onclick="openKeyboard('chip-name')">
-                        <span id="chip-name-text" class="fake-placeholder">Name zuordnen…</span>
-                    </div>
-                </div>
-            `;
-        } else if (type === 'mitglied-add') {
-            // entfernt
-        }
-
+            </div>
+        `;
         document.getElementById('formOverlay').classList.add('open');
-    }
-
-    function openBorrowForm(idx) {
-        currentInventarIdx = idx;
-        openForm('inventar-borrow');
     }
 
     function closeForm() {
         document.getElementById('formOverlay').classList.remove('open');
         currentForm = null;
-        currentInventarIdx = null;
-        pendingUID = null;
     }
 
     async function submitForm() {
-        if (currentForm === 'inventar-add') {
-            const name = getFormText('inv-name');
-            const desc = getFormText('inv-desc');
-            if (!name) return;
-            await fetch('/admin/inventar', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, beschreibung: desc })
-            });
-            await loadInventar();
-        } else if (currentForm === 'inventar-borrow') {
-            const von   = getFormText('borrow-von');
-            const start = document.getElementById('borrow-start')?.value || '';
-            const ende  = document.getElementById('borrow-ende')?.value || '';
-            await fetch('/admin/inventar/' + currentInventarIdx, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'ausgeliehen', von, start, ende })
-            });
-            await loadInventar();
-        } else if (currentForm === 'chip-add') {
-            const name = getFormText('chip-name');
-            if (!name || !pendingUID) return;
-            await fetch('/admin/chips', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uid: pendingUID, name })
-            });
-            await loadChips();
-        }
+        const name = getFormText('inv-name');
+        const desc = getFormText('inv-desc');
+        if (!name) return;
+        await fetch('/admin/inventar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, beschreibung: desc })
+        });
         closeForm();
+        await loadInventar();
     }
 
     function getFormText(id) {
@@ -431,26 +430,98 @@
         return el.textContent.trim();
     }
 
+    // ── NFC CODE GENERATOR ────────────────────────────────────────
+    const SECRET_PHRASE = 'tgloggeristcool'; // gleich wie in nfc_daemon.py
+    let npValue = '';
+
+    function npType(d) {
+        if (npValue.length >= 5) return;
+        npValue += d;
+        updateNpDisplay();
+    }
+
+    function npBack() {
+        npValue = npValue.slice(0, -1);
+        updateNpDisplay();
+    }
+
+    function updateNpDisplay() {
+        const digits = document.getElementById('codeDigits');
+        const display = npValue.padEnd(5, '_').split('').join(' ');
+        digits.textContent = display;
+
+        const result = document.getElementById('codeResult');
+        if (npValue.length === 5) {
+            const check = sha256CheckDigit(npValue);
+            const fullCode = npValue + check;
+            document.getElementById('codeResultCode').textContent = fullCode;
+            document.getElementById('codeResultHint').textContent =
+                'Auf Chip schreiben: TG:Name:' + fullCode;
+            result.style.display = 'block';
+        } else {
+            result.style.display = 'none';
+        }
+    }
+
+    // SHA256 Prüfziffer (gleiche Logik wie Python)
+    async function sha256CheckDigit(first5) {
+        // Synchrone Implementierung via TextEncoder + subtle crypto
+        const data = new TextEncoder().encode(first5 + SECRET_PHRASE);
+        const hashBuf = await crypto.subtle.digest('SHA-256', data);
+        const hashArr = Array.from(new Uint8Array(hashBuf));
+        // BigInt aus hex
+        const hex = hashArr.map(b => b.toString(16).padStart(2,'0')).join('');
+        const big = BigInt('0x' + hex);
+        return String(big % 10n);
+    }
+
+    // Da sha256 async ist, updateNpDisplay auch async machen
+    async function updateNpDisplayAsync() {
+        const digits = document.getElementById('codeDigits');
+        const display = npValue.padEnd(5, '_').split('').join(' ');
+        digits.textContent = display;
+
+        const result = document.getElementById('codeResult');
+        if (npValue.length === 5) {
+            const check = await sha256CheckDigit(npValue);
+            const fullCode = npValue + check;
+            document.getElementById('codeResultCode').textContent = fullCode;
+            document.getElementById('codeResultHint').textContent =
+                'Auf Chip schreiben: TG:Name:' + fullCode;
+            result.style.display = 'block';
+        } else {
+            result.style.display = 'none';
+        }
+    }
+
+    // Override sync version
+    function npType(d) {
+        if (npValue.length >= 5) return;
+        npValue += d;
+        updateNpDisplayAsync();
+    }
+    function npBack() {
+        npValue = npValue.slice(0, -1);
+        updateNpDisplayAsync();
+    }
+    updateNpDisplayAsync();
+
     // ── QR CODES ──────────────────────────────────────────────────
     function initQR() {
         new QRCode(document.getElementById('qr-logs'), {
             text: 'https://docs.google.com/spreadsheets/d/1e-ALBWNy-vA7xDhyh7MW1McnOO2A0_xoS2Nu02GLB14/edit?usp=sharing',
-            width: 220, height: 220,
-            colorDark: '#111111', colorLight: '#ffffff',
+            width: 220, height: 220, colorDark: '#111', colorLight: '#fff',
             correctLevel: QRCode.CorrectLevel.M
         });
         new QRCode(document.getElementById('qr-inventar'), {
             text: 'https://docs.google.com/spreadsheets/d/1WW_qR45lTtLJuVniZpM87JqKcvrs0GCSEIEKzi_bxa8/edit?usp=sharing',
-            width: 220, height: 220,
-            colorDark: '#111111', colorLight: '#ffffff',
+            width: 220, height: 220, colorDark: '#111', colorLight: '#fff',
             correctLevel: QRCode.CorrectLevel.M
         });
     }
 
     // ── KEYBOARD ──────────────────────────────────────────────────
-    let kbTarget = null;
-    let kbValue  = '';
-    let shiftOn  = true;
+    let kbTarget = null, kbValue = '', shiftOn = true;
 
     function openKeyboard(target) {
         kbTarget = target;
@@ -460,45 +531,31 @@
         shiftOn = kbValue.length === 0;
         updateShiftDisplay();
     }
-
     function closeKeyboard() {
         document.getElementById('kbOverlay').classList.remove('open');
         kbTarget = null;
     }
-
     function confirmKeyboard() {
         const val = kbValue.trim();
         if (kbTarget) {
             const el = document.getElementById(kbTarget + '-text');
             if (el) {
-                el.textContent = val || el.getAttribute('data-placeholder') || '';
+                el.textContent = val || '';
                 el.classList.toggle('fake-placeholder', !val);
+                if (!val) el.textContent = el.getAttribute('data-ph') || '…';
             }
         }
         closeKeyboard();
     }
-
-    function kbType(char) {
-        kbValue += shiftOn ? char.toUpperCase() : char;
+    function kbType(c) {
+        kbValue += shiftOn ? c.toUpperCase() : c;
         shiftOn = false;
         updateShiftDisplay();
         updateKbPreview();
     }
-
-    function kbBackspace() {
-        kbValue = kbValue.slice(0, -1);
-        updateKbPreview();
-    }
-
-    function toggleShift() {
-        shiftOn = !shiftOn;
-        updateShiftDisplay();
-    }
-
-    function updateShiftDisplay() {
-        document.getElementById('shiftBtn').classList.toggle('active', shiftOn);
-    }
-
+    function kbBackspace() { kbValue = kbValue.slice(0,-1); updateKbPreview(); }
+    function toggleShift()  { shiftOn = !shiftOn; updateShiftDisplay(); }
+    function updateShiftDisplay() { document.getElementById('shiftBtn').classList.toggle('active', shiftOn); }
     function updateKbPreview() {
         const el = document.getElementById('kbPreview');
         el.textContent = kbValue;
@@ -507,7 +564,6 @@
 
     // ── INIT ──────────────────────────────────────────────────────
     loadInventar();
-    loadChips();
     initQR();
     </script>
 </body>
