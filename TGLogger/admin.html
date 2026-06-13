@@ -337,9 +337,7 @@
         btn.textContent = '⏳ Importiere…';
         btn.disabled = true;
         try {
-            // Erst lokale Liste leeren
-            await fetch('/admin/inventar/clear', { method: 'POST' });
-            const res  = await fetch('/inventar-data');
+            const res  = await fetch('/inventar-data?t=' + Date.now());
             const text = await res.text();
             const lines = text.trim().split('\n').slice(1);
             const items = lines.filter(l => l.trim()).map(line => {
@@ -355,14 +353,12 @@
                 };
             }).filter(i => i.name);
 
-            // POST each item
-            for (const item of items) {
-                await fetch('/admin/inventar', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(item)
-                });
-            }
+            // Bulk speichern ohne Sheet-Sync (Sheet ist ja die Quelle)
+            await fetch('/admin/inventar/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(items)
+            });
             await loadInventar();
             btn.textContent = `✓ ${items.length} Einträge importiert`;
         } catch(e) {

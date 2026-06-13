@@ -11,10 +11,9 @@
 </head>
 <body>
 
-    <!-- TOPBAR -->
     <div class="topbar">
         <span class="topbar-title">Inventar</span>
-        <button class="refresh-btn" id="refreshBtn" onclick="loadInventar()" aria-label="Liste aktualisieren">
+        <button class="refresh-btn" id="refreshBtn" onclick="window.location.reload()" aria-label="Liste aktualisieren">
             <svg class="refresh-icon" id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
                 <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
@@ -24,7 +23,6 @@
         </button>
     </div>
 
-    <!-- LISTE -->
     <main class="content">
         <div id="itemList" class="item-list">
             <div class="loading" id="loadingState">
@@ -34,7 +32,6 @@
         </div>
     </main>
 
-    <!-- BOTTOM NAV -->
     <header id="bottomNav">
         <nav>
             <ul>
@@ -48,71 +45,47 @@
     </header>
 
     <script>
-        // ── KONFIGURATION ─────────────────────────────────────────────
-        // Google Sheets CSV Export URL:
-        // Im Sheet: Datei → Im Web veröffentlichen → Tabellenblatt "Inventar" → CSV → Link kopieren
-        const SHEET_CSV_URL = "/inventar-data";
-        // ─────────────────────────────────────────────────────────────
-
-        // Fallback-Daten wenn Sheet nicht erreichbar
-        const FALLBACK_ITEMS = [
-            { name: "Beispielgerät", beschreibung: "Noch kein Sheet verbunden", status: "verfügbar", von: "", start: "", ende: "" }
-        ];
-
         async function loadInventar() {
-            const list    = document.getElementById('itemList');
-            const spinner = document.getElementById('loadingState');
-            const icon    = document.getElementById('refreshIcon');
-
+            const icon = document.getElementById('refreshIcon');
             icon.classList.add('spinning');
-            list.innerHTML = '';
-            list.appendChild(spinner);
-            spinner.style.display = 'flex';
 
-           try {
-    const res = await fetch('/admin/inventar?t=' + Date.now());
-    const buffer = await res.arrayBuffer();
-    const text   = new TextDecoder('utf-8').decode(buffer);
-    const items  = parseCSV(text);
-    renderItems(items.length > 0 ? items : FALLBACK_ITEMS);
-} catch (e) {
-    console.error(e);
-    renderItems(FALLBACK_ITEMS);
-}
-
+            try {
+                const res   = await fetch('/inventar-data?t=' + Date.now());
+                const text  = await res.text();
+                const items = parseCSV(text);
+                renderItems(items);
+            } catch (e) {
+                document.getElementById('itemList').innerHTML =
+                    '<p class="empty-hint">Fehler beim Laden.</p>';
+            }
             icon.classList.remove('spinning');
         }
 
         function parseCSV(text) {
-            const lines = text.trim().split('\n').slice(1); // erste Zeile = Header überspringen
-            return lines
-                .filter(l => l.trim().length > 0)
+            return text.trim().split('\n').slice(1)
+                .filter(l => l.trim())
                 .map(line => {
-                    const cols = splitCSVLine(line);
-                    const rawStatus = (cols[2] || '').trim().toLowerCase();
-                    const status = rawStatus === 'a' || rawStatus === 'ausgeliehen'
-                        ? 'ausgeliehen' : 'verfügbar';
+                    const cols = splitCSV(line);
+                    const raw  = (cols[2] || '').trim().toLowerCase();
                     return {
                         name:         (cols[0] || '').trim(),
                         beschreibung: (cols[1] || '').trim(),
-                        status:       status,
+                        status:       (raw === 'ausgeliehen' || raw === 'a') ? 'ausgeliehen' : 'verfügbar',
                         von:          (cols[3] || '').trim(),
                         start:        (cols[4] || '').trim(),
                         ende:         (cols[5] || '').trim(),
                     };
                 })
-                .filter(i => i.name.length > 0);
+                .filter(i => i.name);
         }
 
-        // CSV Parser der auch Anführungszeichen beachtet
-        function splitCSVLine(line) {
+        function splitCSV(line) {
             const result = [];
             let cur = '', inQ = false;
-            for (let i = 0; i < line.length; i++) {
-                const c = line[i];
-                if (c === '"') { inQ = !inQ; }
+            for (const c of line) {
+                if (c === '"') inQ = !inQ;
                 else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
-                else { cur += c; }
+                else cur += c;
             }
             result.push(cur);
             return result;
@@ -121,26 +94,22 @@
         function renderItems(items) {
             const list = document.getElementById('itemList');
             list.innerHTML = '';
-
-            if (items.length === 0) {
+            if (!items.length) {
                 list.innerHTML = '<p class="empty-hint">Keine Einträge gefunden.</p>';
                 return;
             }
-
             items.forEach(item => {
-                const ausgeliehen = item.status === 'ausgeliehen';
+                const aus  = item.status === 'ausgeliehen';
                 const card = document.createElement('div');
-                card.className = 'item-card' + (ausgeliehen ? ' borrowed' : '');
-
+                card.className = 'item-card' + (aus ? ' borrowed' : '');
                 let dateInfo = '';
-                if (ausgeliehen) {
+                if (aus) {
+                    if (item.von)   dateInfo += `<span class="item-borrower">von ${item.von}</span>`;
                     const parts = [];
                     if (item.start) parts.push('seit ' + item.start);
                     if (item.ende)  parts.push('bis '  + item.ende);
-                    if (item.von)   dateInfo += `<span class="item-borrower">von ${item.von}</span>`;
                     if (parts.length) dateInfo += `<span class="item-dates">${parts.join(' — ')}</span>`;
                 }
-
                 card.innerHTML = `
                     <div class="item-main">
                         <div class="item-info">
@@ -148,16 +117,14 @@
                             ${item.beschreibung ? `<span class="item-desc">${item.beschreibung}</span>` : ''}
                             ${dateInfo ? `<div class="item-date-row">${dateInfo}</div>` : ''}
                         </div>
-                        <span class="item-badge ${ausgeliehen ? 'badge-out' : 'badge-ok'}">
-                            ${ausgeliehen ? 'Ausgeliehen' : 'Verfügbar'}
+                        <span class="item-badge ${aus ? 'badge-out' : 'badge-ok'}">
+                            ${aus ? 'Ausgeliehen' : 'Verfügbar'}
                         </span>
-                    </div>
-                `;
+                    </div>`;
                 list.appendChild(card);
             });
         }
 
-        // Beim Laden direkt starten
         loadInventar();
     </script>
 </body>
