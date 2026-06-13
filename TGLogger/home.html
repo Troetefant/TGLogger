@@ -162,6 +162,7 @@ setInterval(loadCalendar, UPDATE_INTERVAL);
 
         // Login status placeholder and helper (for NFC integration)
         (function setupLoginStatus(){
+        
             const nameEl = document.getElementById('statusName');
             const dotEl = document.getElementById('statusDot');
             const textEl = document.querySelector('.login-status .status-text');
@@ -210,6 +211,22 @@ setInterval(loadCalendar, UPDATE_INTERVAL);
             // Expose updater for NFC integration (global for now)
             window.updateLoginStatus = setStatus;
         })();
+        // NFC Status polling
+(function pollLoginStatus(){
+    async function poll(){
+        try {
+            const res  = await fetch('/current_user');
+            const data = await res.json();
+            if (data.name) {
+                window.updateLoginStatus(data.name, true);
+            } else {
+                window.updateLoginStatus('Niemand eingeloggt', false);
+            }
+        } catch(e) {}
+    }
+    poll();
+    setInterval(poll, 1000);
+})();
     </script>
 </body>
 </html>
