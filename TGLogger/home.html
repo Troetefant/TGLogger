@@ -11,6 +11,11 @@
     <link href="https://fonts.googleapis.com/css2?family=BBH+Bogle&family=Zalando+Sans+Expanded:ital,wght@0,200..900;1,200..900&display=swap" rel="stylesheet">
 </head>
 <body class="background">
+    <div id="flashOverlay" style="
+    position:fixed;inset:0;z-index:9999;
+    pointer-events:none;opacity:0;
+    transition:opacity 0.15s ease;">
+    </div>
     <div class="topbar" role="banner" aria-hidden="false">
         <img src="images/TG-Logo.png" alt="TG Logo" class="topbar-logo">
         <div id="datetime" class="datetime" aria-live="polite"></div>
@@ -211,22 +216,39 @@ setInterval(loadCalendar, UPDATE_INTERVAL);
             // Expose updater for NFC integration (global for now)
             window.updateLoginStatus = setStatus;
         })();
+
+        // Flash-Effekt
+        function flash(color) {
+            const el = document.getElementById('flashOverlay');
+            el.style.background = color;
+            el.style.opacity = '0.5';
+            setTimeout(() => { el.style.opacity = '0'; }, 600);
+        }
+
         // NFC Status polling
-(function pollLoginStatus(){
-    async function poll(){
-        try {
-            const res  = await fetch('/current_user');
-            const data = await res.json();
-            if (data.name) {
-                window.updateLoginStatus(data.name, true);
-            } else {
-                window.updateLoginStatus('Niemand eingeloggt', false);
+        (function pollLoginStatus(){
+            async function poll(){
+                try {
+                    const res  = await fetch('/current_user');
+                    const data = await res.json();
+                    const name = data.name;
+                    const wasLoggedIn = window._lastLoginName;
+
+                    if (name && name !== wasLoggedIn) {
+                        flash('rgba(34,197,94,1)');
+                        window.updateLoginStatus(name, true);
+                    } else if (!name && wasLoggedIn) {
+                        flash('rgba(239,68,68,1)');
+                        window.updateLoginStatus('Niemand eingeloggt', false);
+                    } else if (!name) {
+                        window.updateLoginStatus('Niemand eingeloggt', false);
+                    }
+                    window._lastLoginName = name;
+                } catch(e) {}
             }
-        } catch(e) {}
-    }
-    poll();
-    setInterval(poll, 1000);
-})();
+            poll();
+            setInterval(poll, 1000);
+        })();
     </script>
 </body>
 </html>
