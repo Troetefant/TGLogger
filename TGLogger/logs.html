@@ -273,43 +273,49 @@
 
         // ── SUBMIT ────────────────────────────────────────────────────
         async function submitEntry() {
-            const name = selectedName || '';
-            if (!name) { showFeedback('Bitte zuerst einen Namen auswählen.', 'error'); return; }
-            if (!startActive && !endActive) { showFeedback('Bitte mindestens eine Zeit aktivieren.', 'error'); return; }
+    const name = selectedName || '';
+    if (!name) { showFeedback('Bitte zuerst einen Namen eingeben.', 'error'); return; }
+    if (!startActive && !endActive) { showFeedback('Bitte mindestens eine Zeit aktivieren.', 'error'); return; }
 
-            const comment = (document.getElementById('fakeCommentText').dataset.value || '').trim();
-            const dateStr = now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const comment = (document.getElementById('fakeCommentText').dataset.value || '').trim();
+    const dateStr = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-            const payload = {
-                name:      name,
-                startzeit: startActive ? dateStr + ' ' + minToStr(startMinutes) : '',
-                endzeit:   endActive   ? dateStr + ' ' + minToStr(endMinutes)   : '',
-                comment:   comment
-            };
+    const payload = {
+        name:      name,
+        startzeit: startActive ? dateStr + ' ' + minToStr(startMinutes) : '',
+        endzeit:   endActive   ? dateStr + ' ' + minToStr(endMinutes)   : '',
+        comment:   comment,
+        uid:       ''
+    };
 
-            const btn = document.getElementById('submitBtn');
-            btn.disabled = true;
-            btn.textContent = 'Wird eingetragen…';
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Wird eingetragen…';
 
-            try {
-                await fetch(SHEET_URL, {
-                    method: 'POST', mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const info = [
-                    startActive ? 'Start ' + minToStr(startMinutes) : '',
-                    endActive   ? 'Ende '  + minToStr(endMinutes)   : ''
-                ].filter(Boolean).join(' → ');
-                showFeedback('✓ ' + name + ' — ' + info, 'success');
-                resetForm();
-            } catch (err) {
-                showFeedback('Fehler beim Eintragen. Bitte erneut versuchen.', 'error');
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'Eintragen';
+    try {
+        const res = await fetch('/manual_log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.ok) {
+            const info = [
+                startActive ? 'Start ' + minToStr(startMinutes) : '',
+                endActive   ? 'Ende '  + minToStr(endMinutes)   : ''
+            ].filter(Boolean).join(' → ');
+            showFeedback('✓ ' + name + ' — ' + info, 'success');
+            resetForm();
+        } else {
+            showFeedback('Fehler beim Eintragen.', 'error');
         }
+    } catch (err) {
+        showFeedback('Fehler beim Eintragen.', 'error');
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Eintragen';
+}
 
         function showFeedback(msg, type) {
             const el = document.getElementById('feedback');
