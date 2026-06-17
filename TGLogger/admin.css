@@ -527,3 +527,18 @@ body {
     text-align: center;
     word-break: break-all;
 }
+
+/* ── MULTIPLE BORROWS ── */
+.borrow-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    flex-wrap: wrap;
+}
+.action-btn.small {
+    padding: 6px 12px;
+    font-size: 12px;
+    flex-shrink: 0;
+}

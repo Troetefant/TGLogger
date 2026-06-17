@@ -61,20 +61,24 @@
             icon.classList.remove('spinning');
         }
 
+        // Parst dynamische Ausleihe-Spalten: ab Spalte 2 (0-indiziert) je 3 Spalten pro Ausleihe
         function parseCSV(text) {
             return text.trim().split('\n').slice(1)
                 .filter(l => l.trim())
                 .map(line => {
                     const cols = splitCSV(line);
-                    const raw  = (cols[2] || '').trim().toLowerCase();
-                    return {
-                        name:         (cols[0] || '').trim(),
-                        beschreibung: (cols[1] || '').trim(),
-                        status:       (raw === 'ausgeliehen' || raw === 'a') ? 'ausgeliehen' : 'verfügbar',
-                        von:          (cols[3] || '').trim(),
-                        start:        (cols[4] || '').trim(),
-                        ende:         (cols[5] || '').trim(),
-                    };
+                    const name         = (cols[0] || '').trim();
+                    const beschreibung = (cols[1] || '').trim();
+                    const borrows = [];
+                    for (let i = 2; i < cols.length; i += 3) {
+                        const von   = (cols[i]     || '').trim();
+                        const start = (cols[i + 1] || '').trim();
+                        const ende  = (cols[i + 2] || '').trim();
+                        if (von || start || ende) {
+                            borrows.push({ von, start, ende });
+                        }
+                    }
+                    return { name, beschreibung, borrows };
                 })
                 .filter(i => i.name);
         }
@@ -99,26 +103,30 @@
                 return;
             }
             items.forEach(item => {
-                const aus  = item.status === 'ausgeliehen';
-                const card = document.createElement('div');
+                const borrows = item.borrows || [];
+                const aus     = borrows.length > 0;
+                const card    = document.createElement('div');
                 card.className = 'item-card' + (aus ? ' borrowed' : '');
-                let dateInfo = '';
-                if (aus) {
-                    if (item.von)   dateInfo += `<span class="item-borrower">von ${item.von}</span>`;
+
+                const borrowLines = borrows.map(b => {
                     const parts = [];
-                    if (item.start) parts.push('seit ' + item.start);
-                    if (item.ende)  parts.push('bis '  + item.ende);
-                    if (parts.length) dateInfo += `<span class="item-dates">${parts.join(' — ')}</span>`;
-                }
+                    if (b.start) parts.push('seit ' + b.start);
+                    if (b.ende)  parts.push('bis '  + b.ende);
+                    return `<div class="item-date-row">
+                        ${b.von ? `<span class="item-borrower">von ${b.von}</span>` : ''}
+                        ${parts.length ? `<span class="item-dates">${parts.join(' — ')}</span>` : ''}
+                    </div>`;
+                }).join('');
+
                 card.innerHTML = `
                     <div class="item-main">
                         <div class="item-info">
                             <span class="item-name">${item.name}</span>
                             ${item.beschreibung ? `<span class="item-desc">${item.beschreibung}</span>` : ''}
-                            ${dateInfo ? `<div class="item-date-row">${dateInfo}</div>` : ''}
+                            ${borrowLines}
                         </div>
                         <span class="item-badge ${aus ? 'badge-out' : 'badge-ok'}">
-                            ${aus ? 'Ausgeliehen' : 'Verfügbar'}
+                            ${aus ? (borrows.length > 1 ? borrows.length + 'x Ausgeliehen' : 'Ausgeliehen') : 'Verfügbar'}
                         </span>
                     </div>`;
                 list.appendChild(card);
