@@ -312,6 +312,7 @@ setInterval(loadCalendar, UPDATE_INTERVAL);
         function hideCommentBanner() {
             document.getElementById('commentBanner').classList.remove('show');
             clearTimeout(commentTimer);
+            onCommentBannerDone();
         }
 
         function dismissCommentBanner() {
@@ -333,20 +334,23 @@ setInterval(loadCalendar, UPDATE_INTERVAL);
 
         function closeCommentKeyboard() {
             document.getElementById('commentKbOverlay').classList.remove('open');
-            hideCommentBanner();
+            document.getElementById('commentBanner').classList.remove('show');
+            onCommentBannerDone();
         }
 
         async function confirmCommentKeyboard() {
             const comment = cKbValue.trim();
+            const name    = lastLogoutName;
             document.getElementById('commentKbOverlay').classList.remove('open');
-            hideCommentBanner();
+            document.getElementById('commentBanner').classList.remove('show');
+            onCommentBannerDone();
 
-            if (comment && lastLogoutName) {
+            if (comment && name) {
                 try {
                     await fetch('/nfc_comment', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name: lastLogoutName, comment: comment })
+                        body: JSON.stringify({ name: name, comment: comment })
                     });
                 } catch(e) {}
             }
@@ -368,33 +372,67 @@ setInterval(loadCalendar, UPDATE_INTERVAL);
         }
 
         // ── NFC STATUS POLLING ────────────────────────────────────────
+        window._lastActiveSet = [];
+
         (function pollLoginStatus(){
             async function poll(){
                 try {
-                    const res  = await fetch('/current_user');
-                    const data = await res.json();
-                    const name = data.name;
-                    const wasLoggedIn = window._lastLoginName;
+                    const res    = await fetch('/current_user');
+                    const data   = await res.json();
+                    const name   = data.name;
+                    const active = data.active || [];
+                    const prevActive = window._lastActiveSet;
 
-                    if (name && name !== wasLoggedIn) {
+                    // Wer ist neu dazugekommen? (Login)
+                    const newlyLoggedIn = active.filter(n => !prevActive.includes(n));
+                    // Wer ist verschwunden? (Logout)
+                    const newlyLoggedOut = prevActive.filter(n => !active.includes(n));
+
+                    if (newlyLoggedIn.length > 0) {
                         flash('rgba(34,197,94,1)');
-                        window.updateLoginStatus(name, true);
-                        // Neuer Login während Banner offen war -> Banner verwerfen (System bleibt nutzbar)
-                        hideCommentBanner();
-                    } else if (!name && wasLoggedIn) {
+                        window.updateLoginStatus(name || newlyLoggedIn[newlyLoggedIn.length - 1], true);
+                    }
+
+                    if (newlyLoggedOut.length > 0) {
                         flash('rgba(239,68,68,1)');
-                        window.updateLoginStatus('Niemand eingeloggt', false);
-                        // Ausgeloggt -> Banner zeigen
-                        showCommentBanner(wasLoggedIn);
-                    } else if (!name) {
+                        window.updateLoginStatus(name || 'Niemand eingeloggt', !!name);
+                        // Für jede ausgeloggte Person den Banner zeigen (nacheinander, falls mehrere)
+                        newlyLoggedOut.forEach(n => queueCommentBanner(n));
+                    }
+
+                    if (!name && active.length === 0) {
                         window.updateLoginStatus('Niemand eingeloggt', false);
                     }
-                    window._lastLoginName = name;
+
+                    window._lastActiveSet = active;
                 } catch(e) {}
             }
             poll();
             setInterval(poll, 1000);
         })();
+
+        // Banner-Warteschlange: falls mehrere Personen kurz hintereinander ausloggen,
+        // wird jeder Banner nacheinander angezeigt statt überschrieben zu werden.
+        let commentBannerQueue = [];
+        let commentBannerBusy = false;
+
+        function queueCommentBanner(name) {
+            commentBannerQueue.push(name);
+            processCommentBannerQueue();
+        }
+
+        function processCommentBannerQueue() {
+            if (commentBannerBusy || commentBannerQueue.length === 0) return;
+            commentBannerBusy = true;
+            const name = commentBannerQueue.shift();
+            showCommentBanner(name);
+        }
+
+        // Wird aufgerufen wenn ein Banner fertig ist (Timeout, X, oder Kommentar gespeichert)
+        function onCommentBannerDone() {
+            commentBannerBusy = false;
+            setTimeout(processCommentBannerQueue, 400); // kleine Pause zwischen Bannern
+        }
     </script>
 </body>
 </html>
