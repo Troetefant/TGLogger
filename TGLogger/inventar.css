@@ -280,3 +280,37 @@ nav a {
     font-size: 22px;
     font-weight: 900;
 }
+
+/* ── ÜBERFÄLLIG (nur Anzeige, Sortierung clientseitig) ──────── */
+
+.item-card.overdue {
+    border-left-color: var(--red, #d62d2d);
+    background: #fff5f5;
+}
+
+.item-date-row.overdue-row {
+    position: relative;
+}
+
+.overdue-text {
+    color: #d62d2d !important;
+    font-weight: 700 !important;
+}
+
+.overdue-tag {
+    display: inline-block;
+    background: #d62d2d;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.badge-overdue {
+    background: #fde2e2;
+    color: #d62d2d;
+}

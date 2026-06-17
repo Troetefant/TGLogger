@@ -95,6 +95,31 @@
             return result;
         }
 
+        function isOverdue(borrow) {
+            if (!borrow.ende) return false;
+            const ende = new Date(borrow.ende);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return ende < today;
+        }
+
+        function itemHasOverdue(item) {
+            return (item.borrows || []).some(isOverdue);
+        }
+
+        function sortItems(items) {
+            // Sortierreihenfolge nur für die Anzeige: 1) überfällig  2) ausgeliehen  3) verfügbar
+            // Die zugrunde liegende Sheet-Reihenfolge bleibt unverändert (kein Schreibzugriff hier).
+            return [...items].sort((a, b) => {
+                const rank = (item) => {
+                    if (itemHasOverdue(item)) return 0;
+                    if ((item.borrows || []).length > 0) return 1;
+                    return 2;
+                };
+                return rank(a) - rank(b);
+            });
+        }
+
         function renderItems(items) {
             const list = document.getElementById('itemList');
             list.innerHTML = '';
@@ -102,19 +127,23 @@
                 list.innerHTML = '<p class="empty-hint">Keine Einträge gefunden.</p>';
                 return;
             }
-            items.forEach(item => {
-                const borrows = item.borrows || [];
-                const aus     = borrows.length > 0;
-                const card    = document.createElement('div');
-                card.className = 'item-card' + (aus ? ' borrowed' : '');
+            const sorted = sortItems(items);
+            sorted.forEach(item => {
+                const borrows  = item.borrows || [];
+                const aus      = borrows.length > 0;
+                const overdue  = itemHasOverdue(item);
+                const card     = document.createElement('div');
+                card.className = 'item-card' + (aus ? ' borrowed' : '') + (overdue ? ' overdue' : '');
 
                 const borrowLines = borrows.map(b => {
                     const parts = [];
                     if (b.start) parts.push('seit ' + b.start);
                     if (b.ende)  parts.push('bis '  + b.ende);
-                    return `<div class="item-date-row">
-                        ${b.von ? `<span class="item-borrower">von ${b.von}</span>` : ''}
-                        ${parts.length ? `<span class="item-dates">${parts.join(' — ')}</span>` : ''}
+                    const rowOverdue = isOverdue(b);
+                    return `<div class="item-date-row${rowOverdue ? ' overdue-row' : ''}">
+                        ${b.von ? `<span class="item-borrower${rowOverdue ? ' overdue-text' : ''}">von ${b.von}</span>` : ''}
+                        ${parts.length ? `<span class="item-dates${rowOverdue ? ' overdue-text' : ''}">${parts.join(' — ')}</span>` : ''}
+                        ${rowOverdue ? `<span class="overdue-tag">Überfällig</span>` : ''}
                     </div>`;
                 }).join('');
 
@@ -125,8 +154,8 @@
                             ${item.beschreibung ? `<span class="item-desc">${item.beschreibung}</span>` : ''}
                             ${borrowLines}
                         </div>
-                        <span class="item-badge ${aus ? 'badge-out' : 'badge-ok'}">
-                            ${aus ? (borrows.length > 1 ? borrows.length + 'x Ausgeliehen' : 'Ausgeliehen') : 'Verfügbar'}
+                        <span class="item-badge ${overdue ? 'badge-overdue' : (aus ? 'badge-out' : 'badge-ok')}">
+                            ${overdue ? 'Überfällig' : (aus ? (borrows.length > 1 ? borrows.length + 'x Ausgeliehen' : 'Ausgeliehen') : 'Verfügbar')}
                         </span>
                     </div>`;
                 list.appendChild(card);
