@@ -16,6 +16,83 @@
     pointer-events:none;opacity:0;
     transition:opacity 0.15s ease;">
     </div>
+
+    <!-- KOMMENTAR BANNER (nach NFC-Logout, 5s Timeout) -->
+    <div id="commentBanner" class="comment-banner">
+        <div class="comment-banner-bar" id="commentBannerBar"></div>
+        <div class="comment-banner-content">
+            <span class="comment-banner-text">Kommentar hinterlassen für <b id="commentBannerName"></b>?</span>
+            <div class="comment-banner-actions">
+                <button class="comment-banner-btn comment-banner-yes" onclick="openCommentKeyboard()" aria-label="Kommentar hinzufügen">&#10003;</button>
+                <button class="comment-banner-btn comment-banner-no" onclick="dismissCommentBanner()" aria-label="Verwerfen">&#10005;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KEYBOARD FÜR KOMMENTAR -->
+    <div class="kb-overlay" id="commentKbOverlay">
+        <div class="kb-inputbar">
+            <button class="kb-action-btn kb-close" onclick="closeCommentKeyboard()">&#8592;</button>
+            <div class="kb-preview" id="commentKbPreview"></div>
+            <button class="kb-action-btn kb-confirm" onclick="confirmCommentKeyboard()">&#10003;</button>
+        </div>
+        <div class="keyboard">
+            <div class="kb-row">
+                <button class="kb-key" onclick="commentKbType('q')">Q</button>
+                <button class="kb-key" onclick="commentKbType('w')">W</button>
+                <button class="kb-key" onclick="commentKbType('e')">E</button>
+                <button class="kb-key" onclick="commentKbType('r')">R</button>
+                <button class="kb-key" onclick="commentKbType('t')">T</button>
+                <button class="kb-key" onclick="commentKbType('z')">Z</button>
+                <button class="kb-key" onclick="commentKbType('u')">U</button>
+                <button class="kb-key" onclick="commentKbType('i')">I</button>
+                <button class="kb-key" onclick="commentKbType('o')">O</button>
+                <button class="kb-key" onclick="commentKbType('p')">P</button>
+                <button class="kb-key" onclick="commentKbType('ü')">Ü</button>
+            </div>
+            <div class="kb-row">
+                <button class="kb-key" onclick="commentKbType('a')">A</button>
+                <button class="kb-key" onclick="commentKbType('s')">S</button>
+                <button class="kb-key" onclick="commentKbType('d')">D</button>
+                <button class="kb-key" onclick="commentKbType('f')">F</button>
+                <button class="kb-key" onclick="commentKbType('g')">G</button>
+                <button class="kb-key" onclick="commentKbType('h')">H</button>
+                <button class="kb-key" onclick="commentKbType('j')">J</button>
+                <button class="kb-key" onclick="commentKbType('k')">K</button>
+                <button class="kb-key" onclick="commentKbType('l')">L</button>
+                <button class="kb-key" onclick="commentKbType('ö')">Ö</button>
+                <button class="kb-key" onclick="commentKbType('ä')">Ä</button>
+            </div>
+            <div class="kb-row">
+                <button class="kb-key kb-shift" id="commentShiftBtn" onclick="toggleCommentShift()">&#8679;</button>
+                <button class="kb-key" onclick="commentKbType('y')">Y</button>
+                <button class="kb-key" onclick="commentKbType('x')">X</button>
+                <button class="kb-key" onclick="commentKbType('c')">C</button>
+                <button class="kb-key" onclick="commentKbType('v')">V</button>
+                <button class="kb-key" onclick="commentKbType('b')">B</button>
+                <button class="kb-key" onclick="commentKbType('n')">N</button>
+                <button class="kb-key" onclick="commentKbType('m')">M</button>
+                <button class="kb-key" onclick="commentKbType('-')">-</button>
+                <button class="kb-key kb-backspace" onclick="commentKbBackspace()">&#9003;</button>
+            </div>
+            <div class="kb-row kb-bottom-row">
+                <button class="kb-key kb-num" onclick="commentKbType('1')">1</button>
+                <button class="kb-key kb-num" onclick="commentKbType('2')">2</button>
+                <button class="kb-key kb-num" onclick="commentKbType('3')">3</button>
+                <button class="kb-key kb-num" onclick="commentKbType('4')">4</button>
+                <button class="kb-key kb-num" onclick="commentKbType('5')">5</button>
+                <button class="kb-key kb-num" onclick="commentKbType('6')">6</button>
+                <button class="kb-key kb-num" onclick="commentKbType('7')">7</button>
+                <button class="kb-key kb-num" onclick="commentKbType('8')">8</button>
+                <button class="kb-key kb-num" onclick="commentKbType('9')">9</button>
+                <button class="kb-key kb-num" onclick="commentKbType('0')">0</button>
+            </div>
+            <div class="kb-row">
+                <button class="kb-key kb-space" onclick="commentKbType(' ')">Leerzeichen</button>
+            </div>
+        </div>
+    </div>
+
     <div class="topbar" role="banner" aria-hidden="false">
         <img src="images/TG-Logo.png" alt="TG Logo" class="topbar-logo">
         <div id="datetime" class="datetime" aria-live="polite"></div>
@@ -103,7 +180,7 @@ function parseICS(data) {
             }
 
             if (line.startsWith("DTSTART")) {
-                const date = line.split(":")[1]; // z.B. 20260214 oder 20260214T000000Z
+                const date = line.split(":")[1];
                 event.year  = parseInt(date.substr(0, 4), 10);
                 event.month = parseInt(date.substr(4, 2), 10);
                 event.day   = parseInt(date.substr(6, 2), 10);
@@ -114,7 +191,6 @@ function parseICS(data) {
     return events;
 }
 
-/* Nur zukünftige Termine + Sortierung */
 function filterFutureEvents(events) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -131,13 +207,9 @@ function filterFutureEvents(events) {
         });
 }
 
-/* Initial laden + alle 2 Minuten aktualisieren */
 loadCalendar();
 setInterval(loadCalendar, UPDATE_INTERVAL);
 </script>
-
-
-
 
     <script>
         (function updateDateTime(){
@@ -165,32 +237,25 @@ setInterval(loadCalendar, UPDATE_INTERVAL);
             setInterval(tick, 1000);
         })();
 
-        // Login status placeholder and helper (for NFC integration)
         (function setupLoginStatus(){
-        
             const nameEl = document.getElementById('statusName');
             const dotEl = document.getElementById('statusDot');
-            const textEl = document.querySelector('.login-status .status-text');
 
             function fitName(el){
                 if (!el) return;
                 const parent = el.parentElement;
                 const dot = parent.querySelector('.status-dot');
                 const text = parent.querySelector('.status-text');
-                // calculate available width for the name (allow some gap + parent padding)
                 const parentStyles = window.getComputedStyle(parent);
                 const paddingLeft = parseFloat(parentStyles.paddingLeft) || 0;
                 const paddingRight = parseFloat(parentStyles.paddingRight) || 0;
                 const available = Math.max(40, parent.clientWidth - ((dot ? dot.offsetWidth : 0) + (text ? text.offsetWidth : 0) + paddingLeft + paddingRight + 24));
-                const maxSize = 32; // allow larger starting size
-                const minSize = 10; // minimum readable size
+                const maxSize = 32;
+                const minSize = 10;
                 for(let fs = maxSize; fs >= minSize; fs -= 0.5){
                     el.style.fontSize = fs + 'px';
-                    if (el.scrollWidth <= available) {
-                        break;
-                    }
+                    if (el.scrollWidth <= available) break;
                 }
-                // ensure minimum size if nothing fit
                 if (parseFloat(el.style.fontSize) < minSize) el.style.fontSize = minSize + 'px';
             }
 
@@ -198,7 +263,6 @@ setInterval(loadCalendar, UPDATE_INTERVAL);
                 if (nameEl) {
                     nameEl.textContent = name || '';
                     nameEl.style.fontSize = '';
-                    // run fitter after layout
                     requestAnimationFrame(()=> fitName(nameEl));
                 }
                 if (dotEl) {
@@ -207,17 +271,11 @@ setInterval(loadCalendar, UPDATE_INTERVAL);
                     dotEl.setAttribute('aria-label', online ? 'eingeloggt' : 'nicht eingeloggt');
                 }
             }
-            // placeholder initial state (long name example)
             setStatus('', true);
-
-            // re-fit on resize
             window.addEventListener('resize', ()=> { if (nameEl) fitName(nameEl); });
-
-            // Expose updater for NFC integration (global for now)
             window.updateLoginStatus = setStatus;
         })();
 
-        // Flash-Effekt
         function flash(color) {
             const el = document.getElementById('flashOverlay');
             el.style.background = color;
@@ -225,7 +283,91 @@ setInterval(loadCalendar, UPDATE_INTERVAL);
             setTimeout(() => { el.style.opacity = '0'; }, 600);
         }
 
-        // NFC Status polling
+        // ── KOMMENTAR BANNER ──────────────────────────────────────────
+        const COMMENT_TIMEOUT = 5000; // 5 Sekunden
+        let commentTimer = null;
+        let commentRafId = null;
+        let lastLogoutName = null;
+
+        function showCommentBanner(name) {
+            lastLogoutName = name;
+            document.getElementById('commentBannerName').textContent = name;
+            const banner = document.getElementById('commentBanner');
+            const bar    = document.getElementById('commentBannerBar');
+            banner.classList.add('show');
+            bar.style.transition = 'none';
+            bar.style.width = '100%';
+
+            requestAnimationFrame(() => {
+                bar.style.transition = `width ${COMMENT_TIMEOUT}ms linear`;
+                bar.style.width = '0%';
+            });
+
+            clearTimeout(commentTimer);
+            commentTimer = setTimeout(() => {
+                hideCommentBanner();
+            }, COMMENT_TIMEOUT);
+        }
+
+        function hideCommentBanner() {
+            document.getElementById('commentBanner').classList.remove('show');
+            clearTimeout(commentTimer);
+        }
+
+        function dismissCommentBanner() {
+            hideCommentBanner();
+        }
+
+        // ── KEYBOARD FÜR KOMMENTAR ────────────────────────────────────
+        let cKbValue = '';
+        let cShiftOn = true;
+
+        function openCommentKeyboard() {
+            clearTimeout(commentTimer); // Timer pausieren während Tastatur offen ist
+            cKbValue = '';
+            updateCommentKbPreview();
+            document.getElementById('commentKbOverlay').classList.add('open');
+            cShiftOn = true;
+            updateCommentShiftDisplay();
+        }
+
+        function closeCommentKeyboard() {
+            document.getElementById('commentKbOverlay').classList.remove('open');
+            hideCommentBanner();
+        }
+
+        async function confirmCommentKeyboard() {
+            const comment = cKbValue.trim();
+            document.getElementById('commentKbOverlay').classList.remove('open');
+            hideCommentBanner();
+
+            if (comment && lastLogoutName) {
+                try {
+                    await fetch('/nfc_comment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: lastLogoutName, comment: comment })
+                    });
+                } catch(e) {}
+            }
+        }
+
+        function commentKbType(c) {
+            cKbValue += cShiftOn ? c.toUpperCase() : c;
+            cShiftOn = false;
+            updateCommentShiftDisplay();
+            updateCommentKbPreview();
+        }
+        function commentKbBackspace() { cKbValue = cKbValue.slice(0,-1); updateCommentKbPreview(); }
+        function toggleCommentShift() { cShiftOn = !cShiftOn; updateCommentShiftDisplay(); }
+        function updateCommentShiftDisplay() { document.getElementById('commentShiftBtn').classList.toggle('active', cShiftOn); }
+        function updateCommentKbPreview() {
+            const el = document.getElementById('commentKbPreview');
+            el.textContent = cKbValue;
+            el.classList.toggle('empty', !cKbValue);
+        }
+
+        // ── NFC STATUS POLLING ────────────────────────────────────────
         (function pollLoginStatus(){
             async function poll(){
                 try {
@@ -237,9 +379,13 @@ setInterval(loadCalendar, UPDATE_INTERVAL);
                     if (name && name !== wasLoggedIn) {
                         flash('rgba(34,197,94,1)');
                         window.updateLoginStatus(name, true);
+                        // Neuer Login während Banner offen war -> Banner verwerfen (System bleibt nutzbar)
+                        hideCommentBanner();
                     } else if (!name && wasLoggedIn) {
                         flash('rgba(239,68,68,1)');
                         window.updateLoginStatus('Niemand eingeloggt', false);
+                        // Ausgeloggt -> Banner zeigen
+                        showCommentBanner(wasLoggedIn);
                     } else if (!name) {
                         window.updateLoginStatus('Niemand eingeloggt', false);
                     }

@@ -251,9 +251,9 @@ nav ul {
     justify-content: center;
     align-items: center;
     padding: 0.5rem;
-    list-style-type: none;
+    list-style: none;
     margin: 0;
-    gap: 1rem;
+    gap: 0.75rem;
     width: 100%;
     flex-wrap: wrap;
 }
@@ -261,26 +261,36 @@ nav ul {
 nav li {
     flex: 1 1 0;
     margin: 0;
-    background: linear-gradient(180deg, #00b4f0, #0095d0);
-    border-radius: 28px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.18), inset 0 2px 4px rgba(255,255,255,0.25);
+    background: linear-gradient(160deg, #1ac6ff, #0092cc);
+    border-radius: 22px;
+    box-shadow:
+        0 6px 18px rgba(0,146,204,0.28),
+        inset 0 1px 3px rgba(255,255,255,0.22);
     cursor: pointer;
-    transition: transform 120ms ease;
+    transition: transform 110ms ease, box-shadow 110ms ease;
     display: flex;
     align-items: center;
     justify-content: center;
     min-width: 100px;
-    max-width: 260px;
-    min-height: 130px;
+    max-width: 240px;
+    min-height: 120px;
 }
 
-nav li:active { transform: scale(0.94); }
+nav li:active {
+    transform: scale(0.93);
+    box-shadow:
+        0 2px 8px rgba(0,0,0,0.18),
+        inset 0 3px 8px rgba(0,0,0,0.14);
+}
 
 nav li:nth-child(3) {
-    background: linear-gradient(180deg, #ffd54f, #f4b400);
+    background: linear-gradient(160deg, #ffe266, #f4b400);
+    box-shadow:
+        0 6px 18px rgba(244,180,0,0.32),
+        inset 0 1px 3px rgba(255,255,255,0.22);
 }
-nav li:nth-child(5):active {
-    background: linear-gradient(180deg, #e0a800, #c59101);
+nav li:nth-child(3):active {
+    background: linear-gradient(160deg, #e8a800, #c59000);
 }
 
 nav a {
@@ -300,3 +310,164 @@ nav li:active a {
     color: #ffffff;
     text-decoration: none;
 }
+
+/* ── KOMMENTAR BANNER ────────────────────────────────────────── */
+
+.comment-banner {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1500;
+    background: #1a1a1a;
+    transform: translateY(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+.comment-banner.show {
+    transform: translateY(0);
+}
+
+.comment-banner-bar {
+    height: 4px;
+    background: var(--accent);
+    width: 100%;
+}
+
+.comment-banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 20px;
+}
+
+.comment-banner-text {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 700;
+}
+.comment-banner-text b {
+    font-weight: 900;
+    color: #7ee8ff;
+}
+
+.comment-banner-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.comment-banner-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    font-size: 20px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 90ms ease;
+}
+.comment-banner-btn:active { transform: scale(0.88); }
+
+.comment-banner-yes {
+    background: #22c55e;
+    color: #ffffff;
+}
+.comment-banner-no {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+/* ── KOMMENTAR-TASTATUR (gleiche Optik wie logs.html) ───────── */
+
+.kb-overlay {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 2000;
+    background: #e8eaed;
+    border-top: 1.5px solid #c8cacd;
+    transform: translateY(100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.kb-overlay.open {
+    transform: translateY(0);
+}
+
+.kb-inputbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px 8px;
+    background: #f5f7fa;
+    border-bottom: 1px solid #d0d3d8;
+}
+
+.kb-preview {
+    flex: 1;
+    min-height: 46px;
+    background: #ffffff;
+    border: 2px solid #d8dce2;
+    border-radius: 14px;
+    padding: 10px 14px;
+    font-size: 20px;
+    font-weight: 900;
+    color: #111111;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+}
+.kb-preview::after {
+    content: "|";
+    animation: blink 1s step-end infinite;
+    color: var(--accent);
+}
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+.kb-action-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    border: none;
+    font-size: 22px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 80ms ease;
+}
+.kb-action-btn:active { transform: scale(0.92); }
+.kb-close   { background: #d8dce2; color: #333333; }
+.kb-confirm { background: var(--accent); color: #ffffff; }
+
+.keyboard {
+    padding: 6px 6px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.kb-row { display: flex; gap: 5px; justify-content: center; }
+.kb-key {
+    flex: 1; min-width: 0; height: 52px;
+    background: #ffffff; border: none; border-radius: 10px;
+    font-size: 17px; font-weight: 900; color: #111111;
+    cursor: pointer; box-shadow: 0 2px 0 #b0b3b8;
+    transition: transform 60ms ease, background 60ms ease;
+    -webkit-tap-highlight-color: transparent;
+    display: flex; align-items: center; justify-content: center;
+}
+.kb-key:active { transform: translateY(2px); box-shadow: none; background: #d0d3d8; }
+.kb-shift, .kb-backspace { background: #d0d3d8; color: #333333; flex: 1.4; font-size: 20px; }
+.kb-shift.active { background: var(--accent); color: #ffffff; }
+.kb-num { background: #f0f2f5; font-size: 15px; }
+.kb-space { flex: 5; font-size: 15px; font-weight: 400; color: #555555; }
+.kb-bottom-row { gap: 4px; }
